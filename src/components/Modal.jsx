@@ -38,7 +38,7 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     padding: '20px 24px', borderBottom: '1px solid #E0DCDA',
   },
-  title: { fontFamily: "'Playfair Display', serif", fontSize: 20, color: '#0D0D0D' },
+  title: { fontFamily: "'Cormorant', serif", fontSize: 20, color: '#0E0E10' },
   close: {
     background: 'none', border: 'none', cursor: 'pointer',
     fontSize: 18, color: '#999', padding: 4, lineHeight: 1,

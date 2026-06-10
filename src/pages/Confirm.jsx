@@ -67,18 +67,18 @@ const styles = {
   },
   icon: {
     width: 72, height: 72, borderRadius: '50%',
-    background: '#0D0D0D', color: '#C9A84C',
+    background: '#0E0E10', color: '#C8A24B',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 32, fontWeight: 700, margin: '0 auto 24px',
   },
-  title: { fontFamily: "'Playfair Display', serif", fontSize: 32, color: '#0D0D0D', marginBottom: 12 },
+  title: { fontFamily: "'Cormorant', serif", fontSize: 32, color: '#0E0E10', marginBottom: 12 },
   sub: { color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 32 },
   summary: { textAlign: 'left', marginBottom: 32 },
   actions: { display: 'flex', flexDirection: 'column', gap: 12 },
   btn: {
-    padding: '14px', borderRadius: 999, background: '#0D0D0D', color: '#C9A84C',
+    padding: '14px', borderRadius: 999, background: '#0E0E10', color: '#C8A24B',
     fontSize: 15, fontWeight: 700, textDecoration: 'none', display: 'block',
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Jost', sans-serif",
   },
   btnOutline: {
     padding: '14px', borderRadius: 999, border: '2px solid #E0DCDA',

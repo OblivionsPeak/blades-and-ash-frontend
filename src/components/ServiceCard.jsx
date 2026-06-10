@@ -31,13 +31,13 @@ const styles = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
   },
   cardSelected: {
-    border: '2px solid #C9A84C',
+    border: '2px solid #C8A24B',
     boxShadow: '0 4px 16px rgba(201,168,76,0.2)',
     background: '#FFFDF7',
   },
   top: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  name: { fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#0D0D0D' },
-  price: { fontSize: 20, fontWeight: 700, color: '#C9A84C' },
+  name: { fontFamily: "'Cormorant', serif", fontSize: 17, color: '#0E0E10' },
+  price: { fontSize: 20, fontWeight: 700, color: '#C8A24B' },
   desc: { fontSize: 14, color: '#666', marginBottom: 12, lineHeight: 1.5 },
   meta: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   pill: {

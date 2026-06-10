@@ -18,9 +18,21 @@ export default function Home() {
       {/* Hero */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-          <p style={styles.heroLabel}>✂ BLADES & ASH STUDIO</p>
-          <h1 style={styles.heroTitle}>Where Style<br />Meets Craft</h1>
-          <p style={styles.heroSub}>Book your appointment online, anytime. Expert stylists, exceptional results.</p>
+          <svg width="58" height="70" viewBox="0 -16 100 124" style={{ display: 'block', margin: '0 auto 22px' }} aria-hidden="true">
+            <g fill="none" stroke="#C8A24B" strokeLinecap="round">
+              <path d="M50 4 C42 -5 60 -9 49 -16" strokeWidth="2" opacity="0.6" />
+              <path d="M50 5 C58 -1 47 -4 54 -12" strokeWidth="1.4" opacity="0.45" />
+            </g>
+            <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B" />
+            <path d="M37 2 C 45 18, 50 28, 53 39 C 59 60, 67 77, 77 90 L 70 91 C 59 77, 50 60, 46 40 C 43 28, 39 14, 37 2 Z" fill="#C8A24B" />
+            <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" strokeWidth="4.6" strokeLinecap="round" />
+            <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" strokeWidth="2.4" />
+            <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" strokeWidth="3" />
+            <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" strokeWidth="3" />
+          </svg>
+          <p style={styles.heroLabel}>BLADES &amp; ASH STUDIO</p>
+          <h1 style={styles.heroTitle}>Sharp Craft.<br /><span style={{ fontStyle: 'italic', color: '#C8A24B' }}>Quiet</span> Luxury.</h1>
+          <p style={styles.heroSub}>Precision cuts and dimensional colour, by appointment. Book online anytime — expert hands, unhurried care.</p>
           <Link to="/book" style={styles.heroBtn}>Book an Appointment</Link>
         </div>
       </section>
@@ -47,10 +59,10 @@ export default function Home() {
 
       {/* Staff */}
       {staff.length > 0 && (
-        <section style={{ ...styles.section, background: '#0D0D0D' }}>
+        <section style={{ ...styles.section, background: '#0E0E10' }}>
           <div className="container">
             <div style={styles.sectionHead}>
-              <span style={{ ...styles.sectionLabel, color: '#C9A84C' }}>THE TEAM</span>
+              <span style={{ ...styles.sectionLabel, color: '#C8A24B' }}>THE TEAM</span>
               <h2 style={{ ...styles.sectionTitle, color: '#fff' }}>Meet Your Stylists</h2>
             </div>
             <div className="grid-3">
@@ -74,15 +86,15 @@ export default function Home() {
 
 const styles = {
   hero: {
-    background: '#0D0D0D',
+    background: '#0E0E10',
     minHeight: '85vh',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     textAlign: 'center', padding: '80px 24px',
   },
   heroInner: { maxWidth: 680 },
-  heroLabel: { color: '#C9A84C', fontSize: 13, fontWeight: 600, letterSpacing: '0.16em', marginBottom: 24 },
+  heroLabel: { color: '#C8A24B', fontSize: 13, fontWeight: 600, letterSpacing: '0.16em', marginBottom: 24 },
   heroTitle: {
-    fontFamily: "'Playfair Display', serif",
+    fontFamily: "'Cormorant', serif",
     fontSize: 'clamp(48px, 8vw, 80px)',
     color: '#fff', lineHeight: 1.1, marginBottom: 24,
   },
@@ -90,16 +102,16 @@ const styles = {
   heroBtn: {
     display: 'inline-block',
     padding: '16px 44px', borderRadius: 999,
-    background: '#C9A84C', color: '#0D0D0D',
+    background: '#C8A24B', color: '#0E0E10',
     fontSize: 15, fontWeight: 700, letterSpacing: '0.06em',
     textDecoration: 'none', transition: 'background 0.2s',
   },
   section: { padding: '80px 0' },
   sectionHead: { textAlign: 'center', marginBottom: 48 },
-  sectionLabel: { fontSize: 12, fontWeight: 600, letterSpacing: '0.14em', color: '#C9A84C' },
-  sectionTitle: { fontFamily: "'Playfair Display', serif", fontSize: 40, marginTop: 8 },
+  sectionLabel: { fontSize: 12, fontWeight: 600, letterSpacing: '0.14em', color: '#C8A24B' },
+  sectionTitle: { fontFamily: "'Cormorant', serif", fontSize: 40, marginTop: 8 },
   empty: { textAlign: 'center', color: '#888', padding: '40px 0' },
   ctaStrip: { background: '#F9F7F4', padding: '80px 0', borderTop: '1px solid #E0DCDA' },
-  ctaTitle: { fontFamily: "'Playfair Display', serif", fontSize: 36, marginBottom: 12 },
+  ctaTitle: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 12 },
   ctaSub: { color: '#666', fontSize: 16, marginBottom: 32 },
 };

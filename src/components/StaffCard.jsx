@@ -29,17 +29,17 @@ const styles = {
     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
   },
   cardSelected: {
-    border: '2px solid #C9A84C',
+    border: '2px solid #C8A24B',
     boxShadow: '0 4px 16px rgba(201,168,76,0.2)',
     background: '#FFFDF7',
   },
   avatar: {
     width: 52, height: 52, borderRadius: '50%',
-    background: '#0D0D0D', color: '#C9A84C',
+    background: '#0E0E10', color: '#C8A24B',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700,
+    fontFamily: "'Cormorant', serif", fontSize: 18, fontWeight: 700,
     flexShrink: 0,
   },
-  name: { fontFamily: "'Playfair Display', serif", fontSize: 16, color: '#0D0D0D' },
+  name: { fontFamily: "'Cormorant', serif", fontSize: 16, color: '#0E0E10' },
   role: { fontSize: 13, color: '#888', marginTop: 2 },
 };

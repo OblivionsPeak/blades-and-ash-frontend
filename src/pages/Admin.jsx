@@ -188,7 +188,7 @@ export default function Admin() {
                 <div key={p.id} style={styles.staffBlock}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                     <div>
-                      <h3 style={styles.staffName}>{p.full_name || '(no name)'}{p.id === user.id && <span style={{ fontSize: 12, color: '#C9A84C', marginLeft: 8 }}>· you</span>}</h3>
+                      <h3 style={styles.staffName}>{p.full_name || '(no name)'}{p.id === user.id && <span style={{ fontSize: 12, color: '#C8A24B', marginLeft: 8 }}>· you</span>}</h3>
                       <p style={{ ...styles.staffMeta, marginBottom: 0 }}>{p.phone || 'No phone'}</p>
                     </div>
                     <div className="form-group" style={{ margin: 0, minWidth: 160 }}>
@@ -226,7 +226,7 @@ export default function Admin() {
                           type="checkbox"
                           checked={assigned}
                           onChange={() => toggleStaffService(st.id, svc.id, assigned)}
-                          style={{ accentColor: '#C9A84C' }}
+                          style={{ accentColor: '#C8A24B' }}
                         />
                         {svc.name}
                       </label>
@@ -259,7 +259,7 @@ export default function Admin() {
                         <label style={styles.dayToggle}>
                           <input type="checkbox" checked={row.active}
                             onChange={() => setAvailability(a => a.map((r, j) => j === i ? { ...r, active: !r.active } : r))}
-                            style={{ accentColor: '#C9A84C' }} />
+                            style={{ accentColor: '#C8A24B' }} />
                           <span style={{ fontWeight: 600, minWidth: 90 }}>{day}</span>
                         </label>
                         {row.active && (
@@ -306,7 +306,7 @@ export default function Admin() {
             </div>
           </div>
           <label style={styles.checkLabel}>
-            <input type="checkbox" checked={svcForm.deposit_required} style={{ accentColor: '#C9A84C' }}
+            <input type="checkbox" checked={svcForm.deposit_required} style={{ accentColor: '#C8A24B' }}
               onChange={e => setSvcForm(f => ({ ...f, deposit_required: e.target.checked }))} />
             Require deposit
           </label>
@@ -326,10 +326,10 @@ export default function Admin() {
 
 const styles = {
   page: { padding: '48px 0 80px' },
-  title: { fontFamily: "'Playfair Display', serif", fontSize: 36, marginBottom: 32 },
-  addBtn: { padding: '10px 24px', borderRadius: 999, background: '#C9A84C', color: '#0D0D0D', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14 },
+  title: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 32 },
+  addBtn: { padding: '10px 24px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14 },
   table: { background: '#fff', borderRadius: 12, border: '1px solid #E0DCDA', overflow: 'hidden' },
-  tableHead: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 20px', background: '#0D0D0D', color: '#C9A84C', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
+  tableHead: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
   tableRow: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid #F0EDE9', alignItems: 'center' },
   svcName: { fontWeight: 600, fontSize: 15 },
   svcDesc: { fontSize: 12, color: '#888', marginTop: 2 },
@@ -338,11 +338,11 @@ const styles = {
   editBtn: { padding: '5px 14px', borderRadius: 999, background: 'none', border: '1px solid #E0DCDA', fontSize: 12, cursor: 'pointer' },
   deleteBtn: { padding: '5px 14px', borderRadius: 999, background: 'none', border: '1px solid #FECACA', color: '#C0392B', fontSize: 12, cursor: 'pointer' },
   staffBlock: { background: '#fff', borderRadius: 12, padding: 24, marginBottom: 16, border: '1px solid #E0DCDA' },
-  staffName: { fontFamily: "'Playfair Display', serif", fontSize: 20, marginBottom: 4 },
+  staffName: { fontFamily: "'Cormorant', serif", fontSize: 20, marginBottom: 4 },
   staffMeta: { fontSize: 13, color: '#888', marginBottom: 16 },
   serviceChecks: { display: 'flex', flexWrap: 'wrap', gap: 16 },
   checkLabel: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' },
   dayRow: { display: 'flex', alignItems: 'center', gap: 20, background: '#fff', borderRadius: 8, padding: '12px 16px', border: '1px solid #E0DCDA' },
   dayToggle: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minWidth: 140 },
-  saveAvailBtn: { padding: '12px 32px', borderRadius: 999, background: '#0D0D0D', color: '#C9A84C', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14, fontFamily: "'Inter', sans-serif" },
+  saveAvailBtn: { padding: '12px 32px', borderRadius: 999, background: '#0E0E10', color: '#C8A24B', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14, fontFamily: "'Jost', sans-serif" },
 };

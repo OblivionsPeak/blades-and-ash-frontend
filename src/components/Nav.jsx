@@ -32,8 +32,19 @@ export default function Nav() {
     <nav style={styles.nav}>
       <div style={styles.inner}>
         <Link to="/" style={styles.logo}>
-          <span style={styles.logoScissors}>✂</span>
-          <span style={styles.logoText}>BLADES & ASH</span>
+          <svg width="22" height="27" viewBox="0 -16 100 124" style={{ display: 'block' }} aria-hidden="true">
+            <g fill="none" stroke="#C8A24B" strokeLinecap="round">
+              <path d="M50 4 C42 -5 60 -9 49 -16" strokeWidth="2" opacity="0.65" />
+              <path d="M50 5 C58 -1 47 -4 54 -12" strokeWidth="1.4" opacity="0.5" />
+            </g>
+            <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B" />
+            <path d="M37 2 C 45 18, 50 28, 53 39 C 59 60, 67 77, 77 90 L 70 91 C 59 77, 50 60, 46 40 C 43 28, 39 14, 37 2 Z" fill="#C8A24B" />
+            <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" strokeWidth="4.6" strokeLinecap="round" />
+            <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" strokeWidth="2.4" />
+            <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" strokeWidth="3" />
+            <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" strokeWidth="3" />
+          </svg>
+          <span style={styles.logoText}>BLADES <span style={{ fontStyle: 'italic', color: '#C8A24B' }}>&amp;</span> ASH</span>
         </Link>
 
         <div style={styles.links}>
@@ -78,7 +89,7 @@ export default function Nav() {
 const styles = {
   nav: {
     position: 'sticky', top: 0, zIndex: 100,
-    background: '#0D0D0D',
+    background: '#0E0E10',
     borderBottom: '1px solid #2A2A2A',
   },
   inner: {
@@ -88,9 +99,9 @@ const styles = {
   logo: {
     display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none',
   },
-  logoScissors: { color: '#C9A84C', fontSize: 20 },
+  logoScissors: { color: '#C8A24B', fontSize: 20 },
   logoText: {
-    fontFamily: "'Playfair Display', serif",
+    fontFamily: "'Cormorant', serif",
     fontSize: 18, fontWeight: 700,
     color: '#FFFFFF',
     letterSpacing: '0.08em',
@@ -102,10 +113,10 @@ const styles = {
     transition: 'color 0.2s',
     textDecoration: 'none',
   },
-  linkActive: { color: '#C9A84C', fontWeight: 600 },
+  linkActive: { color: '#C8A24B', fontWeight: 600 },
   loginBtn: {
     marginLeft: 8, padding: '8px 20px',
-    background: '#C9A84C', color: '#0D0D0D',
+    background: '#C8A24B', color: '#0E0E10',
     borderRadius: 999, fontSize: 14, fontWeight: 600,
     textDecoration: 'none', transition: 'background 0.2s',
   },
@@ -122,14 +133,14 @@ const styles = {
   burgerLine: { display: 'block', width: 22, height: 2, background: '#fff', borderRadius: 2 },
   drawer: {
     display: 'flex', flexDirection: 'column',
-    borderTop: '1px solid #2A2A2A', background: '#0D0D0D',
+    borderTop: '1px solid #2A2A2A', background: '#0E0E10',
     padding: '8px 0',
   },
   drawerLink: {
     padding: '14px 24px', fontSize: 15, fontWeight: 500,
     color: '#CCCCCC', textDecoration: 'none', background: 'none',
     border: 'none', cursor: 'pointer', textAlign: 'left',
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Jost', sans-serif",
   },
 };
 

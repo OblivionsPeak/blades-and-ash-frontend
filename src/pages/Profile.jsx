@@ -113,7 +113,7 @@ export default function Profile() {
 
 const styles = {
   page: { padding: '48px 0 80px' },
-  title: { fontFamily: "'Playfair Display', serif", fontSize: 36, marginBottom: 32 },
+  title: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 32 },
   profileCard: {
     background: '#fff', borderRadius: 16, padding: 28,
     display: 'flex', alignItems: 'flex-start', gap: 24,
@@ -122,12 +122,12 @@ const styles = {
   },
   avatarBig: {
     width: 72, height: 72, borderRadius: '50%',
-    background: '#0D0D0D', color: '#C9A84C',
+    background: '#0E0E10', color: '#C8A24B',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 28, fontWeight: 700, flexShrink: 0,
-    fontFamily: "'Playfair Display', serif",
+    fontFamily: "'Cormorant', serif",
   },
-  profileName: { fontFamily: "'Playfair Display', serif", fontSize: 22, color: '#0D0D0D', marginBottom: 4 },
+  profileName: { fontFamily: "'Cormorant', serif", fontSize: 22, color: '#0E0E10', marginBottom: 4 },
   profileMeta: { fontSize: 14, color: '#888', marginBottom: 2 },
   editBtn: {
     marginTop: 12, padding: '7px 18px', borderRadius: 999,
@@ -135,18 +135,18 @@ const styles = {
   },
   editForm: { display: 'flex', flexDirection: 'column', gap: 14 },
   saveBtn: {
-    padding: '8px 20px', borderRadius: 999, background: '#0D0D0D', color: '#C9A84C',
+    padding: '8px 20px', borderRadius: 999, background: '#0E0E10', color: '#C8A24B',
     border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
   cancelBtn: {
     padding: '8px 20px', borderRadius: 999, background: 'none',
     border: '1px solid #E0DCDA', fontSize: 13, cursor: 'pointer',
   },
-  sectionTitle: { fontFamily: "'Playfair Display', serif", fontSize: 24, marginBottom: 20 },
+  sectionTitle: { fontFamily: "'Cormorant', serif", fontSize: 24, marginBottom: 20 },
   empty: { textAlign: 'center', padding: '40px 0', color: '#888' },
   bookLink: {
     display: 'inline-block', marginTop: 12, padding: '10px 28px',
-    borderRadius: 999, background: '#C9A84C', color: '#0D0D0D',
+    borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
     fontWeight: 700, fontSize: 14, textDecoration: 'none',
   },
 };

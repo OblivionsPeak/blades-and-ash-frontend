@@ -113,13 +113,13 @@ const styles = {
     boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
   },
   logoRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32, justifyContent: 'center' },
-  scissor: { color: '#C9A84C', fontSize: 22 },
-  brand: { fontFamily: "'Playfair Display', serif", fontSize: 18, letterSpacing: '0.08em', color: '#0D0D0D' },
+  scissor: { color: '#C8A24B', fontSize: 22 },
+  brand: { fontFamily: "'Cormorant', serif", fontSize: 18, letterSpacing: '0.08em', color: '#0E0E10' },
   form: { display: 'flex', flexDirection: 'column', gap: 18 },
   submitBtn: {
     marginTop: 8, padding: '14px', borderRadius: 999,
-    background: '#0D0D0D', color: '#C9A84C',
+    background: '#0E0E10', color: '#C8A24B',
     border: 'none', fontSize: 15, fontWeight: 700,
-    cursor: 'pointer', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em',
+    cursor: 'pointer', fontFamily: "'Jost', sans-serif", letterSpacing: '0.04em',
   },
 };

@@ -206,7 +206,7 @@ export default function Book() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div className="alert alert-info">
                     <strong>No account required</strong> — but signing in saves your history.{' '}
-                    <a href="/login" style={{ color: '#C9A84C' }}>Sign in</a>
+                    <a href="/login" style={{ color: '#C8A24B' }}>Sign in</a>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Full Name</label>
@@ -261,7 +261,7 @@ export default function Book() {
                   {loading ? 'Booking…' : selectedService?.deposit_required ? 'Continue to Payment' : 'Confirm Booking'}
                 </button>
               </div>
-              {!user && <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#888' }}>You must <a href="/login" style={{ color: '#C9A84C' }}>sign in</a> to complete your booking.</p>}
+              {!user && <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#888' }}>You must <a href="/login" style={{ color: '#C8A24B' }}>sign in</a> to complete your booking.</p>}
             </div>
           )}
 
@@ -291,7 +291,7 @@ function SummaryRow({ label, value, bold, accent }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
       <span style={{ color: '#666', fontSize: 14 }}>{label}</span>
-      <span style={{ fontWeight: bold ? 700 : 500, color: accent ? '#C9A84C' : '#0D0D0D', fontSize: bold ? 16 : 14 }}>{value}</span>
+      <span style={{ fontWeight: bold ? 700 : 500, color: accent ? '#C8A24B' : '#0E0E10', fontSize: bold ? 16 : 14 }}>{value}</span>
     </div>
   );
 }
@@ -306,24 +306,24 @@ const styles = {
     background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 13, fontWeight: 700, color: '#aaa', transition: 'all 0.2s',
   },
-  stepDotActive: { background: '#0D0D0D', border: '2px solid #0D0D0D', color: '#C9A84C' },
+  stepDotActive: { background: '#0E0E10', border: '2px solid #0E0E10', color: '#C8A24B' },
   stepLabel: { fontSize: 11, color: '#aaa', letterSpacing: '0.04em', textAlign: 'center' },
-  stepLabelActive: { color: '#0D0D0D', fontWeight: 600 },
+  stepLabelActive: { color: '#0E0E10', fontWeight: 600 },
   card: { background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' },
-  stepTitle: { fontFamily: "'Playfair Display', serif", fontSize: 26, color: '#0D0D0D', marginBottom: 4 },
+  stepTitle: { fontFamily: "'Cormorant', serif", fontSize: 26, color: '#0E0E10', marginBottom: 4 },
   navRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 32 },
   nextBtn: {
-    padding: '12px 32px', borderRadius: 999, background: '#0D0D0D', color: '#C9A84C',
-    border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+    padding: '12px 32px', borderRadius: 999, background: '#0E0E10', color: '#C8A24B',
+    border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
   },
   backBtn: {
     padding: '12px 24px', borderRadius: 999, background: 'transparent',
     border: '1px solid #E0DCDA', color: '#666', fontSize: 14, cursor: 'pointer',
-    fontFamily: "'Inter', sans-serif",
+    fontFamily: "'Jost', sans-serif",
   },
   confirmBtn: {
-    padding: '12px 32px', borderRadius: 999, background: '#C9A84C', color: '#0D0D0D',
-    border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Inter', sans-serif",
+    padding: '12px 32px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
+    border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
   },
   noPreference: {
     background: '#fff', border: '2px solid #E0DCDA', borderRadius: 12,
@@ -331,7 +331,7 @@ const styles = {
     cursor: 'pointer', transition: 'all 0.2s', fontSize: 14, color: '#444',
   },
   noPreferenceSelected: {
-    border: '2px solid #C9A84C', background: '#FFFDF7',
+    border: '2px solid #C8A24B', background: '#FFFDF7',
     boxShadow: '0 4px 16px rgba(201,168,76,0.2)',
   },
   calendarRow: { display: 'flex', gap: 24, marginTop: 20, flexWrap: 'wrap' },
@@ -343,7 +343,7 @@ const styles = {
   },
   profileAvatar: {
     width: 44, height: 44, borderRadius: '50%',
-    background: '#0D0D0D', color: '#C9A84C',
+    background: '#0E0E10', color: '#C8A24B',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 18, fontWeight: 700,
   },

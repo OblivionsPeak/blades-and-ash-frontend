@@ -164,7 +164,7 @@ function Row({ label, value }) {
   return (
     <div>
       <div style={{ fontSize: 11, fontWeight: 600, color: '#aaa', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 15, color: '#0D0D0D' }}>{value}</div>
+      <div style={{ fontSize: 15, color: '#0E0E10' }}>{value}</div>
     </div>
   );
 }
@@ -188,10 +188,10 @@ const STATUS_COLORS = {
 
 const styles = {
   page: { background: '#F9F7F4', minHeight: 'calc(100vh - 64px)', paddingBottom: 60 },
-  statsBar: { background: '#0D0D0D', borderBottom: '1px solid #2A2A2A', padding: '16px 0' },
+  statsBar: { background: '#0E0E10', borderBottom: '1px solid #2A2A2A', padding: '16px 0' },
   statsInner: { display: 'flex', gap: 40, justifyContent: 'center' },
   statPill: { textAlign: 'center' },
-  statValue: { fontSize: 28, fontWeight: 700, color: '#C9A84C', fontFamily: "'Playfair Display', serif" },
+  statValue: { fontSize: 28, fontWeight: 700, color: '#C8A24B', fontFamily: "'Cormorant', serif" },
   statLabel: { fontSize: 12, color: '#888', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 },
   layout: { display: 'flex', gap: 32, marginTop: 32, alignItems: 'flex-start' },
   sidebar: { flex: '0 0 280px', display: 'flex', flexDirection: 'column', gap: 16 },
@@ -200,7 +200,7 @@ const styles = {
   dot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
   main: { flex: 1 },
   dayHeader: { display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 20 },
-  dayTitle: { fontFamily: "'Playfair Display', serif", fontSize: 24, color: '#0D0D0D' },
+  dayTitle: { fontFamily: "'Cormorant', serif", fontSize: 24, color: '#0E0E10' },
   dayCount: { fontSize: 13, color: '#888' },
   empty: { textAlign: 'center', padding: '60px 0' },
   timeline: { display: 'flex', flexDirection: 'column', gap: 12 },
@@ -210,6 +210,6 @@ const styles = {
     transition: 'box-shadow 0.2s',
   },
   apptTime: { fontSize: 13, color: '#888', marginBottom: 4 },
-  apptService: { fontFamily: "'Playfair Display', serif", fontSize: 17, color: '#0D0D0D', fontWeight: 600 },
+  apptService: { fontFamily: "'Cormorant', serif", fontSize: 17, color: '#0E0E10', fontWeight: 600 },
   apptClient: { fontSize: 14, color: '#555', marginTop: 2 },
 };
