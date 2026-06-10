@@ -35,4 +35,6 @@ export const api = {
   createPaymentIntent: (body, token) => apiFetch('/api/payments/create-intent', { method: 'POST', body: JSON.stringify(body) }, token),
 
   getDashboard: (token) => apiFetch('/api/admin/dashboard', {}, token),
+  getClients: (token) => apiFetch('/api/admin/clients', {}, token),
+  updateUserRole: (id, role, token) => apiFetch(`/api/admin/profiles/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }, token),
 };

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -16 100 124" width="100" height="124" role="img" aria-label="Blades and Ash monogram">
+  <!-- Ash smoke rising from the shear tips -->
+  <g fill="none" stroke="#C8A24B" stroke-linecap="round">
+    <path d="M50 4 C42 -5 60 -9 49 -16" stroke-width="2" opacity="0.65"/>
+    <path d="M50 5 C58 -1 47 -4 54 -12" stroke-width="1.4" opacity="0.5"/>
+    <path d="M50 6 C46 0 52 -3 48 -9" stroke-width="1.1" opacity="0.4"/>
+  </g>
+
+  <!-- Crossed shear blades forming a curved 'A', tapering to sharp points -->
+  <!-- Left arm: sharp tip upper-right, curved blade, handle lower-left -->
+  <path id="arm" d="M63 2
+                    C 55 18, 50 28, 47 39
+                    C 41 60, 33 77, 23 90
+                    L 30 91
+                    C 41 77, 50 60, 54 40
+                    C 57 28, 61 14, 63 2 Z"
+        fill="#C8A24B"/>
+  <use href="#arm" transform="matrix(-1 0 0 1 100 0)"/>
+
+  <!-- Curved crossbar of the 'A' -->
+  <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" stroke-width="4.6" stroke-linecap="round"/>
+
+  <!-- Pivot screw -->
+  <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" stroke-width="2.4"/>
+
+  <!-- Finger-ring handles (feet of the 'A') -->
+  <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+  <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+</svg>

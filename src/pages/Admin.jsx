@@ -12,6 +12,7 @@ export default function Admin() {
   const [tab, setTab] = useState('services');
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
 
@@ -37,11 +38,28 @@ export default function Admin() {
   useEffect(() => {
     const token = session?.access_token;
     if (!token) return;
-    Promise.all([api.getServices(), api.getStaff()])
-      .then(([svcs, stf]) => { setServices(svcs); setStaff(stf); })
+    Promise.all([api.getServices(), api.getStaff(), api.getClients(token).catch(() => ({ clients: [] }))])
+      .then(([svcs, stf, cl]) => { setServices(svcs); setStaff(stf); setClients(cl.clients || cl || []); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [session]);
+
+  async function refreshTeam() {
+    const token = session?.access_token;
+    const [stf, cl] = await Promise.all([api.getStaff(), api.getClients(token).catch(() => ({ clients: [] }))]);
+    setStaff(stf);
+    setClients(cl.clients || cl || []);
+  }
+
+  async function changeRole(id, role) {
+    try {
+      await api.updateUserRole(id, role, session?.access_token);
+      await refreshTeam();
+      notify('Role updated.');
+    } catch (e) {
+      notify(e.message || 'Could not update role.');
+    }
+  }
 
   useEffect(() => {
     if (!selectedStaff || !session?.access_token) return;
@@ -72,20 +90,27 @@ export default function Admin() {
   async function saveSvc() {
     const token = session?.access_token;
     const body = { ...svcForm };
-    if (editSvc) await api.updateService(editSvc.id, body, token);
-    else {
-      const res = await api.createService(body, token);
-      setServices(s => [...s, res.service || res]);
+    if (!body.name?.trim()) { notify('Please enter a service name.'); return; }
+    try {
+      if (editSvc) await api.updateService(editSvc.id, body, token);
+      else await api.createService(body, token);
+      // Re-fetch the canonical list so the page always reflects the database
+      setServices(await api.getServices());
+      setSvcModal(false);
+      notify('Service saved.');
+    } catch (e) {
+      notify(e.message || 'Could not save service.');
     }
-    if (editSvc) setServices(s => s.map(x => x.id === editSvc.id ? { ...x, ...body } : x));
-    setSvcModal(false);
-    notify('Service saved.');
   }
   async function deleteSvc(id) {
     if (!confirm('Delete this service?')) return;
-    await api.deleteService(id, session?.access_token);
-    setServices(s => s.filter(x => x.id !== id));
-    notify('Service deleted.');
+    try {
+      await api.deleteService(id, session?.access_token);
+      setServices(await api.getServices());
+      notify('Service deleted.');
+    } catch (e) {
+      notify(e.message || 'Could not delete service.');
+    }
   }
 
   async function saveAvailability() {
@@ -116,6 +141,7 @@ export default function Admin() {
 
         <div className="tab-bar">
           <button className={`tab-btn ${tab === 'services' ? 'active' : ''}`} onClick={() => setTab('services')}>Services</button>
+          <button className={`tab-btn ${tab === 'team' ? 'active' : ''}`} onClick={() => setTab('team')}>Team</button>
           <button className={`tab-btn ${tab === 'staff' ? 'active' : ''}`} onClick={() => setTab('staff')}>Staff & Services</button>
           <button className={`tab-btn ${tab === 'availability' ? 'active' : ''}`} onClick={() => setTab('availability')}>Availability</button>
         </div>
@@ -146,6 +172,41 @@ export default function Admin() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Team Tab */}
+        {tab === 'team' && (
+          <div>
+            <p style={{ fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 1.6, maxWidth: 640 }}>
+              Set each person's role. Promote a stylist to <strong>Staff</strong> so they become bookable and can have availability and services.
+              <strong>Admins</strong> can manage everything and are also bookable. As an admin, you already appear in the Availability and Staff &amp; Services tabs.
+            </p>
+            {[...staff, ...clients]
+              .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
+              .map(p => (
+                <div key={p.id} style={styles.staffBlock}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                    <div>
+                      <h3 style={styles.staffName}>{p.full_name || '(no name)'}{p.id === user.id && <span style={{ fontSize: 12, color: '#C9A84C', marginLeft: 8 }}>· you</span>}</h3>
+                      <p style={{ ...styles.staffMeta, marginBottom: 0 }}>{p.phone || 'No phone'}</p>
+                    </div>
+                    <div className="form-group" style={{ margin: 0, minWidth: 160 }}>
+                      <select
+                        className="form-select"
+                        value={p.role || 'client'}
+                        disabled={p.id === user.id}
+                        title={p.id === user.id ? "You can't change your own role" : 'Change role'}
+                        onChange={e => changeRole(p.id, e.target.value)}
+                      >
+                        <option value="client">Client</option>
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
           </div>
         )}
 

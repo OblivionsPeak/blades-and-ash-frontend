@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 130" width="420" height="130" role="img" aria-label="Blades and Ash Hair Studio">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,600;1,500&amp;family=Jost:wght@400&amp;display=swap');
+      .name { font-family: 'Cormorant', serif; font-weight: 600; font-size: 46px; letter-spacing: 6px; fill: #EDE7DB; }
+      .amp  { font-family: 'Cormorant', serif; font-style: italic; font-weight: 500; fill: #C8A24B; }
+      .sub  { font-family: 'Jost', sans-serif; font-weight: 400; font-size: 12px; letter-spacing: 8px; fill: #837C72; }
+    </style>
+  </defs>
+  <!-- Monogram: curved crossed shears forming an 'A' -->
+  <g transform="translate(16 22) scale(0.8)">
+    <g fill="none" stroke="#C8A24B" stroke-linecap="round">
+      <path d="M50 4 C42 -5 60 -9 49 -16" stroke-width="2" opacity="0.65"/>
+      <path d="M50 5 C58 -1 47 -4 54 -12" stroke-width="1.4" opacity="0.5"/>
+      <path d="M50 6 C46 0 52 -3 48 -9" stroke-width="1.1" opacity="0.4"/>
+    </g>
+    <path id="pm-arm" d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+    <use href="#pm-arm" transform="matrix(-1 0 0 1 100 0)"/>
+    <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" stroke-width="4.6" stroke-linecap="round"/>
+    <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" stroke-width="2.4"/>
+    <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+    <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+  </g>
+  <!-- Wordmark -->
+  <text x="120" y="68" class="name">BLADES <tspan class="amp">&amp;</tspan> ASH</text>
+  <text x="122" y="90" class="sub">HAIR STUDIO</text>
+</svg>
