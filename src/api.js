@@ -1,0 +1,38 @@
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+async function apiFetch(path, options = {}, token = null) {
+  const headers = { 'Content-Type': 'application/json', ...options.headers };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || 'Request failed');
+  }
+  return res.json();
+}
+
+export const api = {
+  getServices: () => apiFetch('/api/services'),
+  createService: (body, token) => apiFetch('/api/services', { method: 'POST', body: JSON.stringify(body) }, token),
+  updateService: (id, body, token) => apiFetch(`/api/services/${id}`, { method: 'PUT', body: JSON.stringify(body) }, token),
+  deleteService: (id, token) => apiFetch(`/api/services/${id}`, { method: 'DELETE' }, token),
+
+  getStaff: () => apiFetch('/api/staff'),
+  getStaffServices: (id) => apiFetch(`/api/staff/${id}/services`),
+  getStaffAvailability: (id) => apiFetch(`/api/staff/${id}/availability`),
+  updateAvailability: (id, body, token) => apiFetch(`/api/staff/${id}/availability`, { method: 'PUT', body: JSON.stringify(body) }, token),
+  assignStaffService: (id, body, token) => apiFetch(`/api/staff/${id}/services`, { method: 'POST', body: JSON.stringify(body) }, token),
+  removeStaffService: (id, serviceId, token) => apiFetch(`/api/staff/${id}/services/${serviceId}`, { method: 'DELETE' }, token),
+
+  getAvailability: (params) => apiFetch(`/api/availability?${new URLSearchParams(params)}`),
+
+  getAppointments: (token, params = {}) => apiFetch(`/api/appointments?${new URLSearchParams(params)}`, {}, token),
+  getAppointment: (id, token) => apiFetch(`/api/appointments/${id}`, {}, token),
+  createAppointment: (body, token) => apiFetch('/api/appointments', { method: 'POST', body: JSON.stringify(body) }, token),
+  updateAppointment: (id, body, token) => apiFetch(`/api/appointments/${id}`, { method: 'PUT', body: JSON.stringify(body) }, token),
+  cancelAppointment: (id, token) => apiFetch(`/api/appointments/${id}`, { method: 'DELETE' }, token),
+
+  createPaymentIntent: (body, token) => apiFetch('/api/payments/create-intent', { method: 'POST', body: JSON.stringify(body) }, token),
+
+  getDashboard: (token) => apiFetch('/api/admin/dashboard', {}, token),
+};
