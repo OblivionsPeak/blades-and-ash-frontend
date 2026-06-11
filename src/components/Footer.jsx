@@ -11,7 +11,9 @@ export default function Footer() {
         <div style={styles.links}>
           <Link to="/book" style={styles.link}>Book</Link>
           <Link to="/memberships" style={styles.link}>Memberships</Link>
+          <a href="mailto:owner@bladeandash.com" style={styles.link}>Contact</a>
         </div>
+        <a href="mailto:owner@bladeandash.com" style={styles.email}>owner@bladeandash.com</a>
         <p style={styles.copy}>© {new Date().getFullYear()} Blades & Ash Studio. All rights reserved.</p>
       </div>
     </footer>
@@ -26,5 +28,6 @@ const styles = {
   link: { color: '#9A938A', fontSize: 13, textDecoration: 'none' },
   scissor: { color: '#C8A24B', fontSize: 20 },
   name: { fontFamily: "'Cormorant', serif", color: '#fff', fontSize: 16, letterSpacing: '0.1em' },
+  email: { color: '#C8A24B', fontSize: 13, textDecoration: 'none' },
   copy: { color: '#9A938A', fontSize: 13 },
 };
