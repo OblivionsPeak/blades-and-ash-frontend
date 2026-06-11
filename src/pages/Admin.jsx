@@ -21,6 +21,11 @@ export default function Admin() {
   const [editSvc, setEditSvc] = useState(null);
   const [svcForm, setSvcForm] = useState({ name: '', description: '', duration_minutes: 60, price_cents: 0, deposit_required: false, deposit_cents: 0 });
 
+  // Bulk import
+  const [importModal, setImportModal] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importing, setImporting] = useState(false);
+
   // Availability
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [availability, setAvailability] = useState(
@@ -113,6 +118,74 @@ export default function Admin() {
     }
   }
 
+  // Parse a pasted list into services. Forgiving about format: one service
+  // per line, e.g. "Women's Cut, 60, 65" or "Women's Cut, 60 min, $65" or
+  // "Women's Cut, $65, 60 min". Optional 4th number is the deposit.
+  function parseServiceLines(text) {
+    const rows = [];
+    const skipped = [];
+    for (const raw of text.split('\n')) {
+      const line = raw.trim();
+      if (!line) continue;
+      // Split on commas/tabs/pipes/semicolons, or a dash surrounded by spaces
+      // (so hyphenated names like "Touch-Up" stay intact).
+      const parts = line.split(/[,\t|;]+|\s+[-–—]\s+/).map(p => p.trim()).filter(Boolean);
+      if (parts.length < 2) { skipped.push(line); continue; }
+      const name = parts[0];
+      let duration = null, price = null, deposit = null;
+      const leftovers = [];
+      for (const p of parts.slice(1)) {
+        const digits = p.replace(/[^0-9.]/g, '');
+        if (digits === '' || isNaN(parseFloat(digits))) continue;
+        const val = parseFloat(digits);
+        const low = p.toLowerCase();
+        if (/hour|hr/.test(low) && duration === null) duration = Math.round(val * 60);
+        else if (/min/.test(low) && duration === null) duration = val;
+        else if (/\$|usd|\./.test(low) && price === null) price = val;
+        else leftovers.push(val);
+      }
+      // Fill anything still missing positionally: duration, then price, then deposit
+      for (const val of leftovers) {
+        if (duration === null) duration = val;
+        else if (price === null) price = val;
+        else if (deposit === null) deposit = val;
+      }
+      if (!name || duration === null || price === null || duration <= 0 || price <= 0) {
+        skipped.push(line);
+        continue;
+      }
+      rows.push({
+        name,
+        description: '',
+        duration_minutes: Math.round(duration),
+        price_cents: Math.round(price * 100),
+        deposit_required: !!deposit && deposit > 0,
+        deposit_cents: deposit && deposit > 0 ? Math.round(deposit * 100) : 0,
+      });
+    }
+    return { rows, skipped };
+  }
+
+  async function doImport() {
+    const token = session?.access_token;
+    const { rows } = parseServiceLines(importText);
+    if (!rows.length) { notify('No valid lines to import. Check the format.'); return; }
+    setImporting(true);
+    let created = 0;
+    const failed = [];
+    for (const row of rows) {
+      try { await api.createService(row, token); created++; }
+      catch { failed.push(row.name); }
+    }
+    setServices(await api.getServices());
+    setImporting(false);
+    setImportModal(false);
+    setImportText('');
+    notify(failed.length
+      ? `Imported ${created}. Failed: ${failed.join(', ')}`
+      : `Imported ${created} service${created !== 1 ? 's' : ''}.`);
+  }
+
   async function saveAvailability() {
     const active = availability.filter(a => a.active).map(({ day_of_week, start_time, end_time }) => ({ day_of_week, start_time, end_time }));
     await api.updateAvailability(selectedStaff.id, active, session?.access_token);
@@ -149,7 +222,8 @@ export default function Admin() {
         {/* Services Tab */}
         {tab === 'services' && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 16 }}>
+              <button onClick={() => { setImportText(''); setImportModal(true); }} style={styles.importBtn}>⇪ Bulk Import</button>
               <button onClick={openNewSvc} style={styles.addBtn}>+ Add Service</button>
             </div>
             <div style={styles.table}>
@@ -320,6 +394,49 @@ export default function Admin() {
           <button onClick={saveSvc} style={styles.saveAvailBtn}>Save Service</button>
         </div>
       </Modal>
+
+      {/* Bulk Import Modal */}
+      <Modal open={importModal} onClose={() => setImportModal(false)} title="Bulk Import Services">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <p style={{ fontSize: 13, color: '#9A938A', lineHeight: 1.6 }}>
+            Paste your service list — <strong>one per line</strong>, as
+            <span style={{ color: '#C8A24B' }}> Name, Duration, Price</span> (add a 4th number for a deposit).
+            Dollar signs and “min” are fine, and header rows are skipped automatically.
+          </p>
+          <textarea
+            className="form-input form-textarea"
+            style={{ minHeight: 160, fontFamily: 'monospace', fontSize: 13 }}
+            placeholder={"Women's Cut, 60, 65\nMen's Cut, 30, 35\nRoot Touch-Up, 90 min, $95, 25\nFull Highlight, 150 min, $180, 50"}
+            value={importText}
+            onChange={e => setImportText(e.target.value)}
+          />
+          {importText.trim() && (() => {
+            const { rows, skipped } = parseServiceLines(importText);
+            return (
+              <div style={{ fontSize: 12.5, color: '#9A938A', lineHeight: 1.6 }}>
+                <div style={{ color: rows.length ? '#9ad9b4' : '#f8a3a3' }}>
+                  {rows.length} service{rows.length !== 1 ? 's' : ''} ready to import
+                </div>
+                {rows.slice(0, 6).map((r, i) => (
+                  <div key={i} style={{ color: '#C9C2B5' }}>
+                    • {r.name} — {r.duration_minutes} min · ${(r.price_cents / 100).toFixed(2)}
+                    {r.deposit_required ? ` · $${(r.deposit_cents / 100).toFixed(2)} deposit` : ''}
+                  </div>
+                ))}
+                {rows.length > 6 && <div>…and {rows.length - 6} more</div>}
+                {skipped.length > 0 && (
+                  <div style={{ color: '#f8a3a3', marginTop: 6 }}>
+                    Skipped {skipped.length} line{skipped.length !== 1 ? 's' : ''} (couldn’t read a duration and price): {skipped.slice(0, 3).join(' | ')}{skipped.length > 3 ? '…' : ''}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <button onClick={doImport} disabled={importing} style={styles.saveAvailBtn}>
+            {importing ? 'Importing…' : 'Import Services'}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -328,6 +445,7 @@ const styles = {
   page: { padding: '48px 0 80px' },
   title: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 32 },
   addBtn: { padding: '10px 24px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14 },
+  importBtn: { padding: '10px 20px', borderRadius: 999, background: 'transparent', color: '#C8A24B', border: '1px solid #C8A24B', fontWeight: 600, cursor: 'pointer', fontSize: 14 },
   table: { background: '#16161A', borderRadius: 12, border: '1px solid #2A2A2A', overflow: 'hidden' },
   tableHead: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
   tableRow: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
