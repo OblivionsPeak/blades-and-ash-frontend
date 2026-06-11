@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blades & Ash Studio — Social Template 05: Booking Reminder / Open Chairs.
+     EDITABLE: all <text>/<tspan> copy can be changed in Canva (Upload > import this SVG).
+     NOTE: Canva may SUBSTITUTE the fonts (Cormorant / Jost). Install or re-select them to match. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <style type="text/css"><![CDATA[
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap');
+      .display { font-family: 'Cormorant', serif; fill: #EDE7DB; }
+      .ital { font-family: 'Cormorant', serif; font-style: italic; }
+      .label { font-family: 'Jost', sans-serif; }
+      .gold { fill: #C8A24B; }
+      .bone { fill: #EDE7DB; }
+      .muted { fill: #9A938A; }
+    ]]></style>
+  </defs>
+
+  <rect x="0" y="0" width="1080" height="1080" fill="#0E0E10"/>
+
+  <!-- Left gold spine -->
+  <rect x="80" y="80" width="6" height="920" fill="#C8A24B"/>
+
+  <!-- Eyebrow -->
+  <text x="140" y="230" class="label gold" font-size="26" font-weight="500" letter-spacing="10">OPEN CHAIRS</text>
+
+  <!-- Headline -->
+  <text x="138" y="380" class="display bone" font-size="120" font-weight="600">A few seats</text>
+  <text x="138" y="500" class="ital gold" font-size="120" font-weight="600">left this week</text>
+
+  <!-- Hairline -->
+  <line x1="140" y1="580" x2="940" y2="580" stroke="#C8A24B" stroke-width="1" opacity="0.5"/>
+
+  <!-- Day & times -->
+  <text x="140" y="680" class="label muted" font-size="24" letter-spacing="6">THIS THURSDAY &amp; FRIDAY</text>
+  <text x="140" y="780" class="display bone" font-size="78" font-weight="500">10am · 1pm · 4pm</text>
+
+  <!-- CTA -->
+  <rect x="140" y="850" width="430" height="100" rx="4" fill="#C8A24B"/>
+  <text x="355" y="912" text-anchor="middle" class="label" fill="#0E0E10" font-size="28" font-weight="600" letter-spacing="5">RESERVE NOW</text>
+
+  <!-- Footer lockup bottom-right -->
+  <g transform="translate(860,860) scale(0.55)">
+    <path d="M50 4 C42 -5 60 -9 49 -16" fill="none" stroke="#C8A24B" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M50 5 C58 -1 47 -4 54 -12" fill="none" stroke="#C8A24B" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+    <g transform="matrix(-1 0 0 1 100 0)">
+      <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+    </g>
+    <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" stroke-width="4.6" stroke-linecap="round"/>
+    <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" stroke-width="2.4"/>
+    <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+    <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+  </g>
+  <text x="940" y="985" text-anchor="end" class="label muted" font-size="17" letter-spacing="5">BLADES &amp; ASH STUDIO · bladeandash.com</text>
+</svg>

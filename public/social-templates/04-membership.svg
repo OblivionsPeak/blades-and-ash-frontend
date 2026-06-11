@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blades & Ash Studio — Social Template 04: Membership Promo.
+     EDITABLE: all <text>/<tspan> copy can be changed in Canva (Upload > import this SVG).
+     NOTE: Canva may SUBSTITUTE the fonts (Cormorant / Jost). Install or re-select them to match. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <style type="text/css"><![CDATA[
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap');
+      .display { font-family: 'Cormorant', serif; fill: #EDE7DB; }
+      .ital { font-family: 'Cormorant', serif; font-style: italic; }
+      .label { font-family: 'Jost', sans-serif; }
+      .gold { fill: #C8A24B; }
+      .bone { fill: #EDE7DB; }
+      .muted { fill: #9A938A; }
+    ]]></style>
+  </defs>
+
+  <rect x="0" y="0" width="1080" height="1080" fill="#0E0E10"/>
+  <!-- Card -->
+  <rect x="80" y="80" width="920" height="920" rx="8" fill="#16161A"/>
+  <rect x="80" y="80" width="920" height="920" rx="8" fill="none" stroke="#C8A24B" stroke-width="1" opacity="0.45"/>
+
+  <!-- Eyebrow -->
+  <text x="540" y="220" text-anchor="middle" class="label gold" font-size="24" font-weight="500" letter-spacing="12">THE STUDIO MEMBERSHIP</text>
+
+  <!-- Plan name -->
+  <text x="540" y="350" text-anchor="middle" class="display bone" font-size="116" font-weight="600">The Obsidian</text>
+  <line x1="430" y1="395" x2="650" y2="395" stroke="#C8A24B" stroke-width="1.5"/>
+
+  <!-- Price -->
+  <text x="540" y="530" text-anchor="middle" class="display gold" font-size="120" font-weight="700">$140<tspan class="label muted" font-size="36"> / month</tspan></text>
+
+  <!-- Perks -->
+  <g font-family="Jost, sans-serif">
+    <text x="320" y="650" class="gold" font-size="30">✦</text>
+    <text x="370" y="650" class="bone label" font-size="30" font-weight="300">One signature cut &amp; style each month</text>
+
+    <text x="320" y="725" class="gold" font-size="30">✦</text>
+    <text x="370" y="725" class="bone label" font-size="30" font-weight="300">15% off all colour &amp; treatments</text>
+
+    <text x="320" y="800" class="gold" font-size="30">✦</text>
+    <text x="370" y="800" class="bone label" font-size="30" font-weight="300">Priority booking &amp; member-only events</text>
+  </g>
+
+  <!-- CTA -->
+  <rect x="340" y="855" width="400" height="90" rx="4" fill="none" stroke="#C8A24B" stroke-width="1.5"/>
+  <text x="540" y="912" text-anchor="middle" class="label bone" font-size="26" letter-spacing="5">JOIN AT bladeandash.com</text>
+
+  <!-- Footer lockup small, top-right mark -->
+  <g transform="translate(880,110) scale(0.55)">
+    <path d="M50 4 C42 -5 60 -9 49 -16" fill="none" stroke="#C8A24B" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M50 5 C58 -1 47 -4 54 -12" fill="none" stroke="#C8A24B" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+    <g transform="matrix(-1 0 0 1 100 0)">
+      <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+    </g>
+    <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" stroke-width="4.6" stroke-linecap="round"/>
+    <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" stroke-width="2.4"/>
+    <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+    <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+  </g>
+  <text x="540" y="980" text-anchor="middle" class="label muted" font-size="17" letter-spacing="6">BLADES &amp; ASH STUDIO · bladeandash.com</text>
+</svg>

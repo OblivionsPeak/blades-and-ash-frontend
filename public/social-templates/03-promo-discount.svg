@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blades & Ash Studio — Social Template 03: Promo / Discount.
+     EDITABLE: all <text>/<tspan> copy can be changed in Canva (Upload > import this SVG).
+     NOTE: Canva may SUBSTITUTE the fonts (Cormorant / Jost). Install or re-select them to match. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <style type="text/css"><![CDATA[
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap');
+      .display { font-family: 'Cormorant', serif; fill: #EDE7DB; }
+      .ital { font-family: 'Cormorant', serif; font-style: italic; }
+      .label { font-family: 'Jost', sans-serif; }
+      .gold { fill: #C8A24B; }
+      .bone { fill: #EDE7DB; }
+      .muted { fill: #9A938A; }
+    ]]></style>
+  </defs>
+
+  <rect x="0" y="0" width="1080" height="1080" fill="#0E0E10"/>
+  <!-- corner rules -->
+  <line x1="80" y1="80" x2="220" y2="80" stroke="#C8A24B" stroke-width="1.5"/>
+  <line x1="80" y1="80" x2="80" y2="220" stroke="#C8A24B" stroke-width="1.5"/>
+  <line x1="1000" y1="1000" x2="860" y2="1000" stroke="#C8A24B" stroke-width="1.5"/>
+  <line x1="1000" y1="1000" x2="1000" y2="860" stroke="#C8A24B" stroke-width="1.5"/>
+
+  <!-- Eyebrow -->
+  <text x="540" y="220" text-anchor="middle" class="label gold" font-size="26" font-weight="500" letter-spacing="14">LIMITED TIME</text>
+
+  <!-- Headline -->
+  <text x="540" y="380" text-anchor="middle" class="display bone" font-size="130" font-weight="700">20% Off</text>
+  <text x="540" y="500" text-anchor="middle" class="ital gold" font-size="120" font-weight="600">Colour</text>
+
+  <!-- Promo code box -->
+  <rect x="290" y="600" width="500" height="140" rx="6" fill="#16161A" stroke="#C8A24B" stroke-width="1.5"/>
+  <text x="540" y="655" text-anchor="middle" class="label muted" font-size="20" letter-spacing="6">USE CODE</text>
+  <text x="540" y="712" text-anchor="middle" class="label gold" font-size="48" font-weight="600" letter-spacing="10">LUXE20</text>
+
+  <!-- Fine print -->
+  <text x="540" y="810" text-anchor="middle" class="label muted" font-size="22" letter-spacing="2">Valid June 1–30, 2026 · New colour services only</text>
+  <text x="540" y="845" text-anchor="middle" class="label muted" font-size="22" letter-spacing="2">Book online &amp; mention code at checkout</text>
+
+  <!-- CTA -->
+  <text x="540" y="905" text-anchor="middle" class="label bone" font-size="26" letter-spacing="6">BOOK AT bladeandash.com</text>
+
+  <!-- Footer lockup centered -->
+  <g transform="translate(490,940) scale(0.40)">
+    <path d="M50 4 C42 -5 60 -9 49 -16" fill="none" stroke="#C8A24B" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M50 5 C58 -1 47 -4 54 -12" fill="none" stroke="#C8A24B" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+    <g transform="matrix(-1 0 0 1 100 0)">
+      <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+    </g>
+    <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" stroke-width="4.6" stroke-linecap="round"/>
+    <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" stroke-width="2.4"/>
+    <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+    <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+  </g>
+  <text x="540" y="995" text-anchor="middle" class="label bone" font-size="20" font-weight="500" letter-spacing="6">BLADES &amp; ASH STUDIO</text>
+</svg>

@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Blades &amp; Ash — Social Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --obsidian: #0E0E10;
+    --surface: #16161A;
+    --gold: #C8A24B;
+    --soft-gold: #D8BC7E;
+    --bone: #EDE7DB;
+    --muted: #9A938A;
+    --line: rgba(200,162,75,0.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--obsidian);
+    color: var(--bone);
+    font-family: 'Jost', sans-serif;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #131316 0%, var(--obsidian) 100%);
+  }
+  header .markwrap { width: 34px; height: 42px; flex: 0 0 auto; }
+  header h1 {
+    font-family: 'Cormorant', serif;
+    font-weight: 600;
+    font-size: 26px;
+    letter-spacing: 1px;
+    color: var(--bone);
+  }
+  header h1 .amp { color: var(--gold); font-style: italic; }
+  header .tag {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-left: auto;
+  }
+  .layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  .panel {
+    width: 380px;
+    flex: 0 0 380px;
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    padding: 22px 22px 60px;
+    background: var(--surface);
+  }
+  .stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 28px;
+    background:
+      radial-gradient(circle at 50% 20%, rgba(200,162,75,0.06), transparent 60%),
+      var(--obsidian);
+    min-width: 0;
+  }
+  .canvas-shell {
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    border: 1px solid var(--line);
+    line-height: 0;
+    max-height: 78vh;
+    max-width: 100%;
+  }
+  canvas#preview { display: block; max-height: 78vh; width: auto; height: auto; }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 22px 0 10px;
+    display: block;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .types {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .type-btn {
+    background: #1C1C21;
+    border: 1px solid rgba(200,162,75,0.12);
+    color: var(--bone);
+    font-family: 'Jost', sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.4px;
+    padding: 10px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.18s ease;
+    line-height: 1.2;
+  }
+  .type-btn:hover { border-color: rgba(200,162,75,0.4); }
+  .type-btn.active {
+    background: linear-gradient(180deg, rgba(200,162,75,0.18), rgba(200,162,75,0.06));
+    border-color: var(--gold);
+    color: var(--soft-gold);
+  }
+  .type-btn .num { color: var(--muted); font-size: 10px; display: block; margin-bottom: 2px; }
+  .type-btn.active .num { color: var(--gold); }
+
+  .toggle-row { display: flex; gap: 8px; }
+  .toggle-btn {
+    flex: 1;
+    background: #1C1C21;
+    border: 1px solid rgba(200,162,75,0.12);
+    color: var(--bone);
+    font-family: 'Jost', sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    padding: 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+  .toggle-btn.active { border-color: var(--gold); color: var(--soft-gold); background: rgba(200,162,75,0.08); }
+
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+  .field input[type="text"],
+  .field textarea {
+    width: 100%;
+    background: #1C1C21;
+    border: 1px solid rgba(255,255,255,0.07);
+    color: var(--bone);
+    font-family: 'Jost', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 9px 11px;
+    border-radius: 4px;
+    transition: border-color 0.18s;
+  }
+  .field textarea { resize: vertical; min-height: 62px; line-height: 1.4; }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--gold); }
+  .field input[type="file"] {
+    width: 100%;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Jost', sans-serif;
+  }
+  .field input[type="file"]::file-selector-button {
+    background: #232329;
+    border: 1px solid rgba(200,162,75,0.25);
+    color: var(--soft-gold);
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    margin-right: 10px;
+    cursor: pointer;
+  }
+
+  .swatches { display: flex; gap: 8px; }
+  .swatch {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .swatch:hover { transform: scale(1.08); }
+  .swatch.active { border-color: var(--bone); }
+
+  .dl-btn {
+    width: 100%;
+    background: linear-gradient(180deg, var(--soft-gold), var(--gold));
+    color: #1a1407;
+    font-family: 'Jost', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border: none;
+    padding: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(200,162,75,0.25);
+    transition: transform 0.12s, box-shadow 0.18s;
+  }
+  .dl-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 30px rgba(200,162,75,0.4); }
+  .dl-btn:active { transform: translateY(0); }
+
+  .hint { font-size: 10px; color: var(--muted); letter-spacing: 0.5px; margin-top: 6px; line-height: 1.4; }
+
+  .panel::-webkit-scrollbar { width: 8px; }
+  .panel::-webkit-scrollbar-track { background: transparent; }
+  .panel::-webkit-scrollbar-thumb { background: rgba(200,162,75,0.2); border-radius: 4px; }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 880px) {
+    .layout { flex-direction: column; }
+    .panel { width: 100%; flex: none; border-right: none; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="markwrap" id="headerMark"></div>
+  <h1>Blades <span class="amp">&amp;</span> Ash <span style="font-size:14px;letter-spacing:3px;color:var(--muted);font-family:'Jost';margin-left:6px;">SOCIAL STUDIO</span></h1>
+  <span class="tag">Instagram &amp; Facebook Ready</span>
+</header>
+
+<div class="layout">
+  <aside class="panel">
+    <span class="section-label">Post Type</span>
+    <div class="types" id="typeGrid"></div>
+
+    <span class="section-label">Format</span>
+    <div class="toggle-row" id="sizeToggle">
+      <button class="toggle-btn active" data-size="square">Square · 1080</button>
+      <button class="toggle-btn" data-size="story">Story · 1080×1920</button>
+    </div>
+
+    <span class="section-label">Accent</span>
+    <div class="swatches" id="swatches"></div>
+
+    <span class="section-label">Details</span>
+    <div id="fields"></div>
+
+    <button class="dl-btn" id="downloadBtn" style="margin-top:18px;">⬇ Download PNG</button>
+    <p class="hint">Full-resolution export. Photos are processed locally in your browser — nothing is uploaded.</p>
+  </aside>
+
+  <main class="stage">
+    <div class="canvas-shell">
+      <canvas id="preview" width="1080" height="1080"></canvas>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   Blades & Ash — Social Studio
+   Single-file, no build, no deps (except Google Fonts).
+   ============================================================ */
+
+const C = {
+  obsidian: '#0E0E10',
+  surface:  '#16161A',
+  gold:     '#C8A24B',
+  softGold: '#D8BC7E',
+  bone:     '#EDE7DB',
+  muted:    '#9A938A',
+};
+
+/* ---- accent options (brand-approved) ---- */
+const ACCENTS = [
+  { id: 'gold',   color: '#C8A24B', soft: '#D8BC7E' },
+  { id: 'copper', color: '#B97A57', soft: '#D49E80' },
+  { id: 'bone',   color: '#EDE7DB', soft: '#F4EFE6' },
+  { id: 'sage',   color: '#8C9A86', soft: '#AEBBA8' },
+];
+
+/* ---- logo mark as inline SVG -> Image ---- */
+function markSVG(accent) {
+  const g = accent;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -16 100 124" width="200" height="248">
+    <g fill="none" stroke="${g}" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50 4 C42 -5 60 -9 49 -16" stroke-width="1.6"/>
+      <path d="M50 5 C58 -1 47 -4 54 -12" stroke-width="1.6"/>
+    </g>
+    <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="${g}"/>
+    <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="${g}" transform="matrix(-1 0 0 1 100 0)"/>
+    <path d="M35 60 Q50 65 65 60" fill="none" stroke="${g}" stroke-width="4.6" stroke-linecap="round"/>
+    <circle cx="50" cy="36" r="3.8" fill="${C.obsidian}" stroke="${g}" stroke-width="2.4"/>
+    <circle cx="24" cy="92" r="6.5" fill="none" stroke="${g}" stroke-width="3"/>
+    <circle cx="76" cy="92" r="6.5" fill="none" stroke="${g}" stroke-width="3"/>
+  </svg>`;
+}
+const markCache = {};
+function getMark(accent) {
+  if (markCache[accent]) return Promise.resolve(markCache[accent]);
+  return new Promise((res) => {
+    const img = new Image();
+    const svg = markSVG(accent);
+    img.onload = () => { markCache[accent] = img; res(img); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  });
+}
+
+/* ---- post type definitions ---- */
+const TYPES = [
+  {
+    id: 'service', label: 'Service & Price',
+    fields: [
+      { k: 'service', l: 'Service Name', t: 'text', v: 'Signature Cut & Style' },
+      { k: 'price',   l: 'Price',        t: 'text', v: '$65' },
+      { k: 'sub',     l: 'Sub Line',     t: 'text', v: 'Now booking for autumn' },
+      { k: 'cta',     l: 'Call to Action',t: 'text', v: 'Reserve your chair today' },
+    ],
+  },
+  {
+    id: 'beforeafter', label: 'Before & After',
+    fields: [
+      { k: 'before', l: 'Before Photo', t: 'file' },
+      { k: 'after',  l: 'After Photo',  t: 'file' },
+      { k: 'caption',l: 'Caption',      t: 'text', v: 'Balayage · 4 hours of craft' },
+    ],
+  },
+  {
+    id: 'promo', label: 'Promo / Discount',
+    fields: [
+      { k: 'headline', l: 'Headline',  t: 'text', v: '20% Off Colour' },
+      { k: 'code',     l: 'Promo Code',t: 'text', v: 'EMBER20' },
+      { k: 'fine',     l: 'Fine Print',t: 'text', v: 'Valid through November 30 · New colour clients' },
+      { k: 'cta',      l: 'Call to Action',t: 'text', v: 'Book online' },
+    ],
+  },
+  {
+    id: 'membership', label: 'Membership',
+    fields: [
+      { k: 'plan',  l: 'Plan Name', t: 'text', v: 'The Forge' },
+      { k: 'price', l: 'Price',     t: 'text', v: '$89' },
+      { k: 'perks', l: 'Perks (one per line)', t: 'textarea', v: 'Monthly cut & style\nPriority booking\n15% off all colour' },
+      { k: 'cta',   l: 'Call to Action', t: 'text', v: 'Join the membership' },
+    ],
+  },
+  {
+    id: 'booking', label: 'Open Chairs',
+    fields: [
+      { k: 'headline', l: 'Headline', t: 'text', v: 'Openings This Week' },
+      { k: 'slots',    l: 'Days & Times (one per line)', t: 'textarea', v: 'Thursday · 2pm, 4pm\nFriday · 10am, 1pm\nSaturday · 11am' },
+      { k: 'cta',      l: 'Call to Action', t: 'text', v: 'Message us to claim a spot' },
+    ],
+  },
+  {
+    id: 'newservice', label: 'New Service',
+    fields: [
+      { k: 'eyebrow', l: 'Eyebrow',     t: 'text', v: 'Now Offering' },
+      { k: 'service', l: 'Service Name',t: 'text', v: 'Precision Beard Sculpting' },
+      { k: 'desc',    l: 'Description',  t: 'text', v: 'Hot towel, straight razor finish, and tailored shaping.' },
+      { k: 'cta',     l: 'Call to Action',t: 'text', v: 'Book your first appointment' },
+    ],
+  },
+  {
+    id: 'quote', label: 'Quote / Vibe',
+    fields: [
+      { k: 'quote',  l: 'Quote', t: 'textarea', v: 'A good cut is forged, not rushed.' },
+      { k: 'attrib', l: 'Attribution', t: 'text', v: '— The Blades & Ash Studio' },
+    ],
+  },
+  {
+    id: 'hours', label: 'Hours / Closure',
+    fields: [
+      { k: 'title', l: 'Title', t: 'text', v: 'Holiday Hours' },
+      { k: 'detail',l: 'Details (one per line)', t: 'textarea', v: 'Dec 24 · Closing at 2pm\nDec 25 — 26 · Closed\nDec 27 · Back to regular hours' },
+    ],
+  },
+];
+
+/* ---- state ---- */
+const state = {
+  type: 'service',
+  size: 'square',
+  accent: 'gold',
+  data: {},
+  images: {}, // key -> HTMLImageElement
+};
+TYPES.forEach(t => t.fields.forEach(f => { if (f.t !== 'file') state.data[f.k] = f.v || ''; }));
+
+const canvas = document.getElementById('preview');
+const ctx = canvas.getContext('2d');
+
+function accentObj() { return ACCENTS.find(a => a.id === state.accent) || ACCENTS[0]; }
+function dims() { return state.size === 'story' ? { w: 1080, h: 1920 } : { w: 1080, h: 1080 }; }
+
+/* ============================================================
+   TEXT HELPERS
+   ============================================================ */
+function setFont(ctx, size, family, weight, style) {
+  ctx.font = `${style || 'normal'} ${weight || 400} ${size}px ${family}`;
+}
+
+// wrap words into lines that fit maxWidth at current font
+function wrapLines(ctx, text, maxWidth) {
+  const words = String(text).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(test).width > maxWidth && cur) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines.length ? lines : [''];
+}
+
+// Auto-size a (possibly multi-line) headline to fit a box.
+// Returns {size, lines, lineHeight}.
+function fitText(ctx, text, opts) {
+  const { maxWidth, maxHeight, family, weight, style, max, min, lh } = opts;
+  let size = max;
+  while (size >= min) {
+    setFont(ctx, size, family, weight, style);
+    const lines = wrapLines(ctx, text, maxWidth);
+    const lineHeight = size * (lh || 1.08);
+    const totalH = lines.length * lineHeight;
+    let fits = totalH <= maxHeight;
+    if (fits) {
+      for (const ln of lines) {
+        if (ctx.measureText(ln).width > maxWidth + 0.5) { fits = false; break; }
+      }
+    }
+    if (fits) return { size, lines, lineHeight };
+    size -= 2;
+  }
+  // fallback at min
+  setFont(ctx, min, family, weight, style);
+  return { size: min, lines: wrapLines(ctx, text, maxWidth), lineHeight: min * (lh || 1.08) };
+}
+
+function drawLines(ctx, lines, cx, startY, lineHeight, align) {
+  ctx.textAlign = align || 'center';
+  let y = startY;
+  for (const ln of lines) {
+    ctx.fillText(ln, cx, y);
+    y += lineHeight;
+  }
+  return y;
+}
+
+/* cover-fit draw image into a rect */
+function drawCover(ctx, img, x, y, w, h) {
+  const ir = img.width / img.height;
+  const rr = w / h;
+  let sw, sh, sx, sy;
+  if (ir > rr) { // image wider -> crop sides
+    sh = img.height; sw = sh * rr; sx = (img.width - sw) / 2; sy = 0;
+  } else {
+    sw = img.width; sh = sw / rr; sx = 0; sy = (img.height - sh) / 2;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+/* tracked (letter-spaced) text */
+function drawTracked(ctx, text, cx, y, tracking, align) {
+  const chars = String(text).split('');
+  let total = 0;
+  for (const ch of chars) total += ctx.measureText(ch).width + tracking;
+  total -= tracking;
+  let x;
+  if (align === 'left') x = cx;
+  else if (align === 'right') x = cx - total;
+  else x = cx - total / 2;
+  ctx.textAlign = 'left';
+  for (const ch of chars) {
+    ctx.fillText(ch, x, y);
+    x += ctx.measureText(ch).width + tracking;
+  }
+  return total;
+}
+
+/* thin gold rule */
+function rule(ctx, cx, y, w, color, h) {
+  ctx.fillStyle = color;
+  ctx.fillRect(cx - w / 2, y, w, h || 1.5);
+}
+
+/* small diamond ornament */
+function diamond(ctx, cx, cy, r, color) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = color;
+  ctx.fillRect(-r, -r, r * 2, r * 2);
+  ctx.restore();
+}
+
+/* ============================================================
+   BACKGROUND
+   ============================================================ */
+function paintBackground(ctx, w, h, accent) {
+  // base
+  ctx.fillStyle = C.obsidian;
+  ctx.fillRect(0, 0, w, h);
+  // subtle vignette / glow top
+  const g = ctx.createRadialGradient(w/2, h*0.18, 60, w/2, h*0.18, w*0.95);
+  g.addColorStop(0, 'rgba(200,162,75,0.07)');
+  g.addColorStop(1, 'rgba(14,14,16,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  // bottom darkening
+  const g2 = ctx.createLinearGradient(0, h*0.6, 0, h);
+  g2.addColorStop(0, 'rgba(0,0,0,0)');
+  g2.addColorStop(1, 'rgba(0,0,0,0.4)');
+  ctx.fillStyle = g2;
+  ctx.fillRect(0, 0, w, h);
+  // fine inner frame
+  const m = Math.round(w * 0.055);
+  ctx.strokeStyle = 'rgba(200,162,75,0.16)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(m, m, w - m*2, h - m*2);
+}
+
+/* footer lockup — mark + studio name + url */
+async function paintFooter(ctx, w, h, accent) {
+  const img = await getMark(accent.color);
+  const mw = w * 0.06;
+  const mh = mw * (124/100);
+  const cx = w / 2;
+  let y = h - h * 0.085;
+  // mark
+  ctx.drawImage(img, cx - mw/2, y - mh, mw, mh);
+  y += 6;
+  // studio name tracked
+  ctx.fillStyle = C.bone;
+  setFont(ctx, w * 0.0185, 'Jost', 500);
+  drawTracked(ctx, 'BLADES & ASH STUDIO', cx, y + w*0.02, w*0.006, 'center');
+  // url
+  ctx.fillStyle = C.muted;
+  setFont(ctx, w * 0.013, 'Jost', 400);
+  drawTracked(ctx, 'BLADEANDASH.COM', cx, y + w*0.045, w*0.005, 'center');
+}
+
+/* eyebrow helper: tracked uppercase label with flanking rules */
+function eyebrow(ctx, text, cx, y, w, accent, fontPx) {
+  setFont(ctx, fontPx, 'Jost', 500);
+  ctx.fillStyle = accent.soft;
+  const tw = drawTracked(ctx, text, cx, y, fontPx*0.28, 'center');
+  // flanking rules
+  const gap = 26;
+  const lineLen = w * 0.06;
+  ctx.fillStyle = accent.color;
+  const ry = y - fontPx*0.32;
+  ctx.fillRect(cx - tw/2 - gap - lineLen, ry, lineLen, 1.5);
+  ctx.fillRect(cx + tw/2 + gap, ry, lineLen, 1.5);
+}
+
+/* ============================================================
+   LAYOUTS — one per post type
+   Each receives (ctx, w, h, d, accent) where d = state.data
+   ============================================================ */
+const LAYOUTS = {
+
+  service(ctx, w, h, d, ac) {
+    const cx = w/2;
+    let y = h * 0.20;
+    eyebrow(ctx, 'THE CHAIR AWAITS', cx, y, w, ac, w*0.018);
+
+    // headline
+    y = h * 0.30;
+    const head = fitText(ctx, d.service || ' ', {
+      maxWidth: w*0.80, maxHeight: h*0.26, family: 'Cormorant', weight: 600,
+      max: w*0.115, min: w*0.05, lh: 1.0,
+    });
+    ctx.fillStyle = C.bone;
+    drawLines(ctx, head.lines, cx, y + head.size*0.8, head.lineHeight, 'center');
+    y += head.lines.length * head.lineHeight + h*0.02;
+
+    // price — big gold
+    rule(ctx, cx, y, w*0.10, ac.color, 1.5);
+    y += h*0.06;
+    ctx.fillStyle = ac.color;
+    const price = fitText(ctx, d.price || ' ', {
+      maxWidth: w*0.6, maxHeight: h*0.12, family: 'Cormorant', weight: 600,
+      max: w*0.13, min: w*0.06, lh: 1.0,
+    });
+    setFont(ctx, price.size, 'Cormorant', 600);
+    ctx.textAlign = 'center';
+    ctx.fillText(price.lines[0], cx, y + price.size*0.8);
+    y += price.size + h*0.04;
+
+    // sub line
+    ctx.fillStyle = C.muted;
+    const sub = fitText(ctx, d.sub || ' ', {
+      maxWidth: w*0.7, maxHeight: h*0.08, family: 'Cormorant', weight: 400, style: 'italic',
+      max: w*0.045, min: w*0.028, lh: 1.2,
+    });
+    setFont(ctx, sub.size, 'Cormorant', 400, 'italic');
+    drawLines(ctx, sub.lines, cx, y, sub.size*1.25, 'center');
+    y += sub.lines.length * sub.size*1.25 + h*0.05;
+
+    drawCTA(ctx, w, h, d.cta, ac, h*0.74);
+  },
+
+  beforeafter(ctx, w, h, d, ac) {
+    const cx = w/2;
+    // eyebrow at top
+    let y = h * 0.115;
+    eyebrow(ctx, 'TRANSFORMATION', cx, y, w, ac, w*0.022);
+
+    // photo region
+    const top = h * 0.16;
+    const bottom = h * 0.80;
+    const region = bottom - top;
+    const innerM = w * 0.07;
+    const photoW = w - innerM*2;
+    const story = state.size === 'story';
+
+    if (story) {
+      // stacked
+      const gap = h*0.015;
+      const ph = (region - gap)/2;
+      paintPhotoCell(ctx, d, 'before', innerM, top, photoW, ph, 'BEFORE', ac);
+      paintPhotoCell(ctx, d, 'after', innerM, top+ph+gap, photoW, ph, 'AFTER', ac);
+    } else {
+      // side by side
+      const gap = w*0.015;
+      const pw = (photoW - gap)/2;
+      paintPhotoCell(ctx, d, 'before', innerM, top, pw, region, 'BEFORE', ac);
+      paintPhotoCell(ctx, d, 'after', innerM+pw+gap, top, pw, region, 'AFTER', ac);
+    }
+
+    // caption
+    if (d.caption) {
+      ctx.fillStyle = C.muted;
+      const cap = fitText(ctx, d.caption, {
+        maxWidth: w*0.8, maxHeight: h*0.06, family: 'Cormorant', weight: 400, style: 'italic',
+        max: w*0.04, min: w*0.026, lh: 1.2,
+      });
+      setFont(ctx, cap.size, 'Cormorant', 400, 'italic');
+      drawLines(ctx, cap.lines, cx, bottom + h*0.045, cap.size*1.2, 'center');
+    }
+  },
+
+  promo(ctx, w, h, d, ac) {
+    const cx = w/2;
+    let y = h*0.165;
+    eyebrow(ctx, 'LIMITED OFFER', cx, y, w, ac, w*0.02);
+
+    y = h*0.27;
+    const head = fitText(ctx, d.headline || ' ', {
+      maxWidth: w*0.82, maxHeight: h*0.24, family: 'Cormorant', weight: 700,
+      max: w*0.12, min: w*0.05, lh: 0.98,
+    });
+    ctx.fillStyle = C.bone;
+    drawLines(ctx, head.lines, cx, y + head.size*0.8, head.lineHeight, 'center');
+    y += head.lines.length*head.lineHeight + h*0.045;
+
+    // promo code box
+    if (d.code) {
+      ctx.fillStyle = C.muted;
+      setFont(ctx, w*0.018, 'Jost', 400);
+      drawTracked(ctx, 'USE CODE', cx, y, w*0.006, 'center');
+      y += h*0.045;
+      setFont(ctx, w*0.07, 'Jost', 600);
+      const codeW = ctx.measureText(d.code.toUpperCase()).width + w*0.10;
+      const boxW = Math.min(Math.max(codeW, w*0.4), w*0.78);
+      const boxH = h*0.085;
+      const bx = cx - boxW/2;
+      ctx.strokeStyle = ac.color; ctx.lineWidth = 2;
+      ctx.setLineDash([10, 8]);
+      ctx.strokeRect(bx, y, boxW, boxH);
+      ctx.setLineDash([]);
+      ctx.fillStyle = ac.soft;
+      let cs = w*0.06;
+      setFont(ctx, cs, 'Jost', 600);
+      while (ctx.measureText(d.code.toUpperCase()).width > boxW - w*0.06 && cs > w*0.025) {
+        cs -= 2; setFont(ctx, cs, 'Jost', 600);
+      }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(d.code.toUpperCase(), cx, y + boxH/2);
+      ctx.textBaseline = 'alphabetic';
+      y += boxH + h*0.05;
+    }
+
+    // fine print
+    if (d.fine) {
+      ctx.fillStyle = C.muted;
+      const fp = fitText(ctx, d.fine, {
+        maxWidth: w*0.75, maxHeight: h*0.08, family: 'Jost', weight: 300,
+        max: w*0.026, min: w*0.018, lh: 1.35,
+      });
+      setFont(ctx, fp.size, 'Jost', 300);
+      drawLines(ctx, fp.lines, cx, y, fp.size*1.35, 'center');
+      y += fp.lines.length*fp.size*1.35 + h*0.03;
+    }
+
+    drawCTA(ctx, w, h, d.cta, ac, h*0.74);
+  },
+
+  membership(ctx, w, h, d, ac) {
+    const cx = w/2;
+    let y = h*0.155;
+    eyebrow(ctx, 'MEMBERSHIP', cx, y, w, ac, w*0.02);
+
+    y = h*0.245;
+    const plan = fitText(ctx, d.plan || ' ', {
+      maxWidth: w*0.8, maxHeight: h*0.14, family: 'Cormorant', weight: 600,
+      max: w*0.10, min: w*0.05, lh: 1.0,
+    });
+    ctx.fillStyle = C.bone;
+    drawLines(ctx, plan.lines, cx, y + plan.size*0.8, plan.lineHeight, 'center');
+    y += plan.lines.length*plan.lineHeight + h*0.02;
+
+    // price / month
+    ctx.fillStyle = ac.color;
+    setFont(ctx, w*0.085, 'Cormorant', 600);
+    const pw = ctx.measureText(d.price || '').width;
+    setFont(ctx, w*0.028, 'Jost', 300);
+    const perW = ctx.measureText(' / month').width;
+    const startX = cx - (pw + perW)/2;
+    ctx.textAlign = 'left';
+    setFont(ctx, w*0.085, 'Cormorant', 600);
+    ctx.fillStyle = ac.color;
+    ctx.fillText(d.price || '', startX, y + w*0.06);
+    ctx.fillStyle = C.muted;
+    setFont(ctx, w*0.028, 'Jost', 300);
+    ctx.fillText(' / month', startX + pw, y + w*0.06);
+    y += w*0.06 + h*0.05;
+
+    rule(ctx, cx, y, w*0.12, ac.color, 1.5);
+    y += h*0.04;
+
+    // perks
+    const perks = String(d.perks||'').split('\n').map(s=>s.trim()).filter(Boolean);
+    const perkSize = w*0.034;
+    setFont(ctx, perkSize, 'Jost', 300);
+    ctx.fillStyle = C.bone;
+    for (const p of perks.slice(0,5)) {
+      // diamond bullet
+      diamond(ctx, cx - w*0.30, y - perkSize*0.32, w*0.008, ac.color);
+      ctx.textAlign = 'left';
+      const fitP = fitOneLine(ctx, p, w*0.54, perkSize, 'Jost', 300, w*0.022);
+      ctx.fillStyle = C.bone;
+      ctx.fillText(fitP.text, cx - w*0.26, y);
+      setFont(ctx, perkSize, 'Jost', 300);
+      y += perkSize*1.7;
+    }
+    y += h*0.02;
+    drawCTA(ctx, w, h, d.cta, ac, h*0.76);
+  },
+
+  booking(ctx, w, h, d, ac) {
+    const cx = w/2;
+    let y = h*0.155;
+    eyebrow(ctx, 'NOW BOOKING', cx, y, w, ac, w*0.02);
+
+    y = h*0.25;
+    const head = fitText(ctx, d.headline || ' ', {
+      maxWidth: w*0.82, maxHeight: h*0.18, family: 'Cormorant', weight: 600,
+      max: w*0.10, min: w*0.05, lh: 1.0,
+    });
+    ctx.fillStyle = C.bone;
+    drawLines(ctx, head.lines, cx, y + head.size*0.8, head.lineHeight, 'center');
+    y += head.lines.length*head.lineHeight + h*0.03;
+
+    rule(ctx, cx, y, w*0.12, ac.color, 1.5);
+    y += h*0.05;
+
+    const slots = String(d.slots||'').split('\n').map(s=>s.trim()).filter(Boolean);
+    const slotSize = w*0.04;
+    for (const s of slots.slice(0,6)) {
+      const fitS = fitOneLine(ctx, s, w*0.72, slotSize, 'Cormorant', 500, w*0.026);
+      ctx.fillStyle = C.bone;
+      setFont(ctx, fitS.size, 'Cormorant', 500);
+      ctx.textAlign = 'center';
+      ctx.fillText(fitS.text, cx, y);
+      y += slotSize*1.55;
+    }
+    y += h*0.03;
+    drawCTA(ctx, w, h, d.cta, ac, h*0.78);
+  },
+
+  newservice(ctx, w, h, d, ac) {
+    const cx = w/2;
+    let y = h*0.20;
+    eyebrow(ctx, (d.eyebrow||'NOW OFFERING').toUpperCase(), cx, y, w, ac, w*0.024);
+
+    y = h*0.32;
+    const head = fitText(ctx, d.service || ' ', {
+      maxWidth: w*0.84, maxHeight: h*0.26, family: 'Cormorant', weight: 600,
+      max: w*0.115, min: w*0.05, lh: 1.0,
+    });
+    ctx.fillStyle = C.bone;
+    drawLines(ctx, head.lines, cx, y + head.size*0.8, head.lineHeight, 'center');
+    y += head.lines.length*head.lineHeight + h*0.035;
+
+    rule(ctx, cx, y, w*0.10, ac.color, 1.5);
+    y += h*0.05;
+
+    if (d.desc) {
+      ctx.fillStyle = C.muted;
+      const desc = fitText(ctx, d.desc, {
+        maxWidth: w*0.72, maxHeight: h*0.14, family: 'Cormorant', weight: 400, style: 'italic',
+        max: w*0.045, min: w*0.028, lh: 1.3,
+      });
+      setFont(ctx, desc.size, 'Cormorant', 400, 'italic');
+      drawLines(ctx, desc.lines, cx, y, desc.size*1.3, 'center');
+      y += desc.lines.length*desc.size*1.3 + h*0.04;
+    }
+    drawCTA(ctx, w, h, d.cta, ac, h*0.76);
+  },
+
+  quote(ctx, w, h, d, ac) {
+    const cx = w/2, cy = h/2;
+    // large quotation mark
+    ctx.fillStyle = 'rgba(200,162,75,0.22)';
+    setFont(ctx, w*0.22, 'Cormorant', 600);
+    ctx.textAlign = 'center';
+    ctx.fillText('“', cx, h*0.30);
+
+    const q = fitText(ctx, d.quote || ' ', {
+      maxWidth: w*0.80, maxHeight: h*0.42, family: 'Cormorant', weight: 500, style: 'italic',
+      max: w*0.10, min: w*0.045, lh: 1.18,
+    });
+    ctx.fillStyle = C.bone;
+    setFont(ctx, q.size, 'Cormorant', 500, 'italic');
+    const blockH = q.lines.length * q.lineHeight;
+    let sy = cy - blockH/2 + q.size*0.7;
+    drawLines(ctx, q.lines, cx, sy, q.lineHeight, 'center');
+
+    let y = cy - blockH/2 + blockH + h*0.05;
+    rule(ctx, cx, y, w*0.08, ac.color, 1.5);
+    y += h*0.045;
+    if (d.attrib) {
+      ctx.fillStyle = ac.soft;
+      const at = fitText(ctx, d.attrib, {
+        maxWidth: w*0.7, maxHeight: h*0.06, family: 'Jost', weight: 400,
+        max: w*0.03, min: w*0.02, lh: 1.2,
+      });
+      setFont(ctx, at.size, 'Jost', 400);
+      drawTracked(ctx, at.lines[0], cx, y, w*0.004, 'center');
+    }
+  },
+
+  hours(ctx, w, h, d, ac) {
+    const cx = w/2;
+    let y = h*0.165;
+    eyebrow(ctx, 'PLEASE NOTE', cx, y, w, ac, w*0.02);
+
+    y = h*0.27;
+    const head = fitText(ctx, d.title || ' ', {
+      maxWidth: w*0.84, maxHeight: h*0.20, family: 'Cormorant', weight: 600,
+      max: w*0.105, min: w*0.05, lh: 1.0,
+    });
+    ctx.fillStyle = C.bone;
+    drawLines(ctx, head.lines, cx, y + head.size*0.8, head.lineHeight, 'center');
+    y += head.lines.length*head.lineHeight + h*0.035;
+
+    rule(ctx, cx, y, w*0.12, ac.color, 1.5);
+    y += h*0.05;
+
+    const lines = String(d.detail||'').split('\n').map(s=>s.trim()).filter(Boolean);
+    const dSize = w*0.036;
+    for (const ln of lines.slice(0,7)) {
+      const fitL = fitOneLine(ctx, ln, w*0.78, dSize, 'Jost', 300, w*0.024);
+      ctx.fillStyle = C.bone;
+      setFont(ctx, fitL.size, 'Jost', 300);
+      ctx.textAlign = 'center';
+      ctx.fillText(fitL.text, cx, y);
+      y += dSize*1.6;
+    }
+  },
+};
+
+/* fit a single line by shrinking */
+function fitOneLine(ctx, text, maxWidth, startSize, family, weight, minSize) {
+  let s = startSize;
+  setFont(ctx, s, family, weight);
+  while (ctx.measureText(text).width > maxWidth && s > minSize) {
+    s -= 1; setFont(ctx, s, family, weight);
+  }
+  return { text, size: s };
+}
+
+/* photo cell with frame + label, for before/after */
+function paintPhotoCell(ctx, d, key, x, y, cw, ch, label, ac) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, cw, ch);
+  ctx.clip();
+  const img = state.images[key];
+  if (img) {
+    drawCover(ctx, img, x, y, cw, ch);
+    // darken bottom for label legibility
+    const g = ctx.createLinearGradient(0, y+ch-ch*0.25, 0, y+ch);
+    g.addColorStop(0, 'rgba(0,0,0,0)');
+    g.addColorStop(1, 'rgba(0,0,0,0.65)');
+    ctx.fillStyle = g; ctx.fillRect(x, y, cw, ch);
+  } else {
+    // placeholder
+    ctx.fillStyle = '#1A1A1F';
+    ctx.fillRect(x, y, cw, ch);
+    ctx.fillStyle = C.muted;
+    setFont(ctx, Math.min(cw,ch)*0.05, 'Jost', 300);
+    ctx.textAlign = 'center';
+    ctx.fillText('Upload ' + label.toLowerCase(), x+cw/2, y+ch/2);
+    setFont(ctx, Math.min(cw,ch)*0.12, 'Cormorant', 500);
+    ctx.fillStyle = 'rgba(200,162,75,0.25)';
+    ctx.fillText('✂', x+cw/2, y+ch/2 - Math.min(cw,ch)*0.06);
+  }
+  ctx.restore();
+  // frame
+  ctx.strokeStyle = 'rgba(200,162,75,0.35)';
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x, y, cw, ch);
+  // label
+  ctx.fillStyle = ac.soft;
+  setFont(ctx, Math.min(cw* (state.size==='story'?0.045:0.07), 46), 'Jost', 500);
+  drawTracked(ctx, label, x+cw/2, y+ch - 22, 4, 'center');
+}
+
+/* CTA pill near the bottom (above footer) */
+function drawCTA(ctx, w, h, text, ac, yFrac) {
+  if (!text) return;
+  const cx = w/2;
+  const y = yFrac;
+  setFont(ctx, w*0.026, 'Jost', 500);
+  let cs = w*0.026;
+  const fit = fitOneLine(ctx, text.toUpperCase(), w*0.7, cs, 'Jost', 500, w*0.018);
+  setFont(ctx, fit.size, 'Jost', 500);
+  const tw = ctx.measureText(fit.text.toUpperCase()).width + (fit.text.length-1)*(fit.size*0.12);
+  const padX = w*0.05, padY = h*0.018;
+  const bw = tw + padX*2;
+  const bh = fit.size + padY*2;
+  const bx = cx - bw/2, by = y - bh/2;
+  // pill
+  ctx.strokeStyle = ac.color; ctx.lineWidth = 1.6;
+  roundRect(ctx, bx, by, bw, bh, bh/2);
+  ctx.stroke();
+  ctx.fillStyle = ac.soft;
+  setFont(ctx, fit.size, 'Jost', 500);
+  drawTracked(ctx, fit.text.toUpperCase(), cx, y + fit.size*0.34, fit.size*0.12, 'center');
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+let renderPending = false;
+async function render() {
+  if (renderPending) return;
+  renderPending = true;
+  await Promise.resolve();
+  renderPending = false;
+
+  const { w, h } = dims();
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const ac = accentObj();
+
+  ctx.textBaseline = 'alphabetic';
+  paintBackground(ctx, w, h, ac);
+
+  const layout = LAYOUTS[state.type];
+  if (layout) layout(ctx, w, h, state.data, ac);
+
+  // footer for all except before/after (which uses the space differently) — include for all to keep brand
+  await paintFooter(ctx, w, h, ac);
+}
+
+/* ============================================================
+   UI WIRING
+   ============================================================ */
+function buildTypeGrid() {
+  const grid = document.getElementById('typeGrid');
+  grid.innerHTML = '';
+  TYPES.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.className = 'type-btn' + (t.id === state.type ? ' active' : '');
+    b.innerHTML = `<span class="num">0${i+1}</span>${t.label}`;
+    b.onclick = () => { state.type = t.id; buildTypeGrid(); buildFields(); render(); };
+    grid.appendChild(b);
+  });
+}
+
+function buildFields() {
+  const wrap = document.getElementById('fields');
+  wrap.innerHTML = '';
+  const t = TYPES.find(x => x.id === state.type);
+  t.fields.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'field';
+    const lab = document.createElement('label');
+    lab.textContent = f.l;
+    div.appendChild(lab);
+    if (f.t === 'file') {
+      const inp = document.createElement('input');
+      inp.type = 'file'; inp.accept = 'image/*';
+      inp.onchange = (e) => handleFile(e, f.k);
+      div.appendChild(inp);
+    } else if (f.t === 'textarea') {
+      const inp = document.createElement('textarea');
+      inp.value = state.data[f.k] || '';
+      inp.oninput = () => { state.data[f.k] = inp.value; render(); };
+      div.appendChild(inp);
+    } else {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.value = state.data[f.k] || '';
+      inp.oninput = () => { state.data[f.k] = inp.value; render(); };
+      div.appendChild(inp);
+    }
+    wrap.appendChild(div);
+  });
+}
+
+function handleFile(e, key) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => { state.images[key] = img; render(); };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function buildSwatches() {
+  const wrap = document.getElementById('swatches');
+  wrap.innerHTML = '';
+  ACCENTS.forEach(a => {
+    const s = document.createElement('div');
+    s.className = 'swatch' + (a.id === state.accent ? ' active' : '');
+    s.style.background = a.color;
+    s.title = a.id;
+    s.onclick = () => { state.accent = a.id; buildSwatches(); render(); };
+    wrap.appendChild(s);
+  });
+}
+
+document.getElementById('sizeToggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('.toggle-btn');
+  if (!btn) return;
+  state.size = btn.dataset.size;
+  document.querySelectorAll('#sizeToggle .toggle-btn').forEach(b => b.classList.toggle('active', b === btn));
+  render();
+});
+
+document.getElementById('downloadBtn').addEventListener('click', async () => {
+  await render();
+  const link = document.createElement('a');
+  const t = TYPES.find(x => x.id === state.type);
+  link.download = `blades-ash-${t.id}-${state.size}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+});
+
+/* header mark inline */
+function paintHeaderMark() {
+  document.getElementById('headerMark').innerHTML = markSVG(C.gold)
+    .replace('width="200" height="248"', 'width="34" height="42"');
+}
+
+/* ============================================================
+   BOOT — wait for fonts
+   ============================================================ */
+async function boot() {
+  buildTypeGrid();
+  buildFields();
+  buildSwatches();
+  paintHeaderMark();
+
+  // ensure fonts loaded before first canvas draw
+  try {
+    await Promise.all([
+      document.fonts.load('600 80px Cormorant'),
+      document.fonts.load('italic 500 80px Cormorant'),
+      document.fonts.load('700 80px Cormorant'),
+      document.fonts.load('400 40px Jost'),
+      document.fonts.load('500 40px Jost'),
+      document.fonts.load('600 40px Jost'),
+      document.fonts.load('300 40px Jost'),
+    ]);
+    await document.fonts.ready;
+  } catch (e) { /* render anyway */ }
+
+  await render();
+  // re-render once more after a tick in case any glyph metrics settled
+  document.fonts.ready.then(() => render());
+}
+boot();
+</script>
+</body>
+</html>

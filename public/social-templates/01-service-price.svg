@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Blades & Ash Studio — Social Template 01: Service & Price Highlight.
+     EDITABLE: all <text>/<tspan> copy can be changed in Canva (Upload > import this SVG).
+     NOTE: Canva may SUBSTITUTE the fonts (Cormorant / Jost). Install or re-select them in Canva to match. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080">
+  <defs>
+    <style type="text/css"><![CDATA[
+      @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap');
+      .display { font-family: 'Cormorant', serif; fill: #EDE7DB; }
+      .ital { font-family: 'Cormorant', serif; font-style: italic; }
+      .label { font-family: 'Jost', sans-serif; fill: #9A938A; }
+      .gold { fill: #C8A24B; }
+      .bone { fill: #EDE7DB; }
+      .muted { fill: #9A938A; }
+    ]]></style>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1080" height="1080" fill="#0E0E10"/>
+  <rect x="40" y="40" width="1000" height="1000" fill="#16161A"/>
+  <rect x="40" y="40" width="1000" height="1000" fill="none" stroke="#C8A24B" stroke-width="1" opacity="0.4"/>
+
+  <!-- Eyebrow -->
+  <text x="80" y="190" class="label" font-size="26" font-weight="500" letter-spacing="10">NOW BOOKING</text>
+  <line x1="80" y1="215" x2="280" y2="215" stroke="#C8A24B" stroke-width="1.5"/>
+
+  <!-- Service name -->
+  <text x="80" y="430" class="display" font-size="150" font-weight="600">Balayage</text>
+  <text x="80" y="560" class="display" font-size="150" font-weight="600">&amp; Gloss</text>
+
+  <!-- Gold hairline -->
+  <line x1="80" y1="650" x2="1000" y2="650" stroke="#C8A24B" stroke-width="1" opacity="0.5"/>
+
+  <!-- Price -->
+  <text x="80" y="770" class="label" font-size="24" letter-spacing="6">STARTING AT</text>
+  <text x="80" y="880" class="display gold" font-size="160" font-weight="700">$185</text>
+
+  <!-- CTA -->
+  <rect x="650" y="760" width="350" height="110" rx="4" fill="none" stroke="#C8A24B" stroke-width="1.5"/>
+  <text x="825" y="810" text-anchor="middle" class="label bone" font-size="26" letter-spacing="6">BOOK ONLINE</text>
+  <text x="825" y="845" text-anchor="middle" class="label gold" font-size="20" letter-spacing="4">bladeandash.com</text>
+
+  <!-- Footer lockup -->
+  <g transform="translate(80,945) scale(0.42)">
+    <g>
+      <path d="M50 4 C42 -5 60 -9 49 -16" fill="none" stroke="#C8A24B" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M50 5 C58 -1 47 -4 54 -12" fill="none" stroke="#C8A24B" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+      <g transform="matrix(-1 0 0 1 100 0)">
+        <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B"/>
+      </g>
+      <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" stroke-width="4.6" stroke-linecap="round"/>
+      <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" stroke-width="2.4"/>
+      <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+      <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
+    </g>
+  </g>
+  <text x="155" y="970" class="label bone" font-size="22" font-weight="500" letter-spacing="6">BLADES &amp; ASH STUDIO</text>
+  <text x="155" y="998" class="label muted" font-size="17" letter-spacing="5">bladeandash.com</text>
+</svg>
