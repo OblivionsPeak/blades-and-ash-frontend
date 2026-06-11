@@ -129,8 +129,13 @@ export default function Admin() {
       if (!line) continue;
       // Split on commas/tabs/pipes/semicolons, or a dash surrounded by spaces
       // (so hyphenated names like "Touch-Up" stay intact).
-      const parts = line.split(/[,\t|;]+|\s+[-–—]\s+/).map(p => p.trim()).filter(Boolean);
-      if (parts.length < 2) { skipped.push(line); continue; }
+      let parts = line.split(/[,\t|;]+|\s+[-–—]\s+/).map(p => p.trim()).filter(Boolean);
+      if (parts.length < 2) {
+        // No delimiter — fall back to "Name <price>" with a trailing number
+        const m = line.match(/^(.+?)\s+\$?(\d+(?:\.\d+)?)\s*$/);
+        if (m) parts = [m[1].trim(), m[2]];
+        else { skipped.push(line); continue; }
+      }
       const name = parts[0];
       let duration = null, price = null, deposit = null;
       const leftovers = [];
@@ -144,13 +149,22 @@ export default function Admin() {
         else if (/\$|usd|\./.test(low) && price === null) price = val;
         else leftovers.push(val);
       }
-      // Fill anything still missing positionally: duration, then price, then deposit
-      for (const val of leftovers) {
-        if (duration === null) duration = val;
-        else if (price === null) price = val;
-        else if (deposit === null) deposit = val;
+      // Distribute the unmarked numbers. Price is the one value that must be
+      // present; duration is optional and defaults to 60 min.
+      if (price === null && duration === null) {
+        if (leftovers.length >= 2) { duration = leftovers[0]; price = leftovers[1]; if (leftovers[2] != null) deposit = leftovers[2]; }
+        else if (leftovers.length === 1) { price = leftovers[0]; } // a lone number is the price
+      } else if (price === null) {
+        if (leftovers[0] != null) price = leftovers[0];
+        if (leftovers[1] != null) deposit = leftovers[1];
+      } else if (duration === null) {
+        if (leftovers[0] != null) duration = leftovers[0];
+        if (leftovers[1] != null) deposit = leftovers[1];
+      } else if (leftovers[0] != null) {
+        deposit = leftovers[0];
       }
-      if (!name || duration === null || price === null || duration <= 0 || price <= 0) {
+      if (duration === null) duration = 60; // sensible default; editable per service
+      if (!name || price === null || price <= 0 || duration <= 0) {
         skipped.push(line);
         continue;
       }
@@ -400,8 +414,14 @@ export default function Admin() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <p style={{ fontSize: 13, color: '#9A938A', lineHeight: 1.6 }}>
             Paste your service list — <strong>one per line</strong>, as
-            <span style={{ color: '#C8A24B' }}> Name, Duration, Price</span> (add a 4th number for a deposit).
+            <span style={{ color: '#C8A24B' }}> Name, Price</span>. Duration is optional
+            (defaults to 60 min — editable per service); add it as
+            <span style={{ color: '#C8A24B' }}> Name, Duration, Price</span>, and a further number for a deposit.
             Dollar signs and “min” are fine, and header rows are skipped automatically.
+          </p>
+          <p style={{ fontSize: 12, color: '#7d776d', lineHeight: 1.5, marginTop: -6 }}>
+            Heads-up: every imported service starts at 60 min, which sets its booking length. Edit any that differ
+            (e.g. colour or highlights) afterward.
           </p>
           <textarea
             className="form-input form-textarea"
