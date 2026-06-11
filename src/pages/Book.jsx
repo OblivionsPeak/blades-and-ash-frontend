@@ -104,7 +104,7 @@ export default function Book() {
     const staffId = selectedStaff?.id || staff[0]?.id;
     if (!staffId) { setSlotsLoading(false); return; }
     api.getAvailability({ staff_id: staffId, service_ids: selectedServices.map(s => s.id).join(','), date: format(selectedDate, 'yyyy-MM-dd') })
-      .then(data => setSlots(data.slots || []))
+      .then(data => setSlots(Array.isArray(data) ? data : (data.slots || [])))
       .catch(() => setSlots([]))
       .finally(() => setSlotsLoading(false));
   }, [selectedDate, selectedServices, selectedStaff]);
