@@ -28,20 +28,31 @@ export default function Confirm() {
         <h1 style={styles.title}>You're booked!</h1>
         <p style={styles.sub}>Your appointment has been confirmed. We'll send you a reminder before your visit.</p>
 
-        {appointment && (
-          <div style={styles.summary}>
-            {apptItems(appointment).map((it, i) => (
-              <Row key={it.service_id || i} label={i === 0 ? 'Service' : ''} value={it.name} />
-            ))}
-            <Row label="Stylist" value={appointment.staff?.full_name || '—'} />
-            <Row label="Date" value={appointment.start_time ? format(new Date(appointment.start_time), 'EEEE, MMMM d, yyyy') : '—'} />
-            <Row label="Time" value={appointment.start_time ? format(new Date(appointment.start_time), 'h:mm a') : '—'} />
-            {appointment.total_cents != null && (
-              <Row label="Total" value={`$${(appointment.total_cents / 100).toFixed(2)}`} />
-            )}
-            <Row label="Status" value={appointment.status || 'confirmed'} />
-          </div>
-        )}
+        {appointment && (() => {
+          const items = apptItems(appointment);
+          const subtotal = items.reduce((s, it) => s + (it.price_cents || 0), 0);
+          const total = appointment.total_cents != null ? appointment.total_cents : subtotal;
+          const discount = subtotal - total;
+          const money = c => `$${(c / 100).toFixed(2)}`;
+          return (
+            <div style={styles.summary}>
+              {items.map((it, i) => (
+                <div key={it.service_id || i} style={styles.itemRow}>
+                  <span style={{ fontSize: 14 }}>{it.name}</span>
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>{it.price_cents != null ? money(it.price_cents) : ''}</span>
+                </div>
+              ))}
+              <div style={{ height: 8 }} />
+              <Row label="Stylist" value={appointment.staff?.full_name || '—'} />
+              <Row label="Date" value={appointment.start_time ? format(new Date(appointment.start_time), 'EEEE, MMMM d, yyyy') : '—'} />
+              <Row label="Time" value={appointment.start_time ? format(new Date(appointment.start_time), 'h:mm a') : '—'} />
+              {discount > 0 && <Row label="Subtotal" value={money(subtotal)} />}
+              {discount > 0 && <Row label="Discount" value={`−${money(discount)}`} accent />}
+              {appointment.total_cents != null && <Row label="Total" value={money(total)} bold />}
+              <Row label="Status" value={appointment.status || 'confirmed'} />
+            </div>
+          );
+        })()}
 
         <div style={styles.policyBox}>
           <strong style={{ color: '#D8BC7E', fontSize: 13 }}>Cancellation policy</strong>
@@ -60,11 +71,15 @@ export default function Confirm() {
   );
 }
 
-function Row({ label, value }) {
+function Row({ label, value, accent, bold }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #2A2A2A' }}>
       <span style={{ color: '#9A938A', fontSize: 14 }}>{label}</span>
-      <span style={{ fontWeight: 600, fontSize: 14 }}>{value}</span>
+      <span style={{
+        fontWeight: bold ? 800 : 600,
+        fontSize: bold ? 15 : 14,
+        color: accent ? '#9ad9b4' : (bold ? '#D8BC7E' : '#EDE7DB'),
+      }}>{value}</span>
     </div>
   );
 }
@@ -88,6 +103,7 @@ const styles = {
   title: { fontFamily: "'Cormorant', serif", fontSize: 32, color: '#EDE7DB', marginBottom: 12 },
   sub: { color: '#9A938A', fontSize: 15, lineHeight: 1.6, marginBottom: 32 },
   summary: { textAlign: 'left', marginBottom: 24 },
+  itemRow: { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #2A2A2A' },
   policyBox: {
     textAlign: 'left', background: '#1E1E22', border: '1px solid #2A2A2A',
     borderRadius: 10, padding: '14px 16px', marginBottom: 32,
