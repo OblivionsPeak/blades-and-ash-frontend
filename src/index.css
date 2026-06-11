@@ -33,6 +33,11 @@ h1, h2, h3, h4 { font-family: 'Cormorant', serif; font-weight: 600; line-height:
 a { color: inherit; text-decoration: none; }
 img { max-width: 100%; }
 
+/* Native buttons don't inherit page color/font by default — make them, so
+   any button without an explicit color is legible on the dark theme. */
+button { font-family: inherit; color: inherit; }
+input, textarea, select { color: var(--text); }
+
 /* Buttons */
 .btn {
   display: inline-flex;
