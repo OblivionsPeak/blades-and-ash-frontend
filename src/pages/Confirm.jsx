@@ -37,6 +37,14 @@ export default function Confirm() {
           </div>
         )}
 
+        <div style={styles.policyBox}>
+          <strong style={{ color: '#D8BC7E', fontSize: 13 }}>Cancellation policy</strong>
+          <p style={styles.policyText}>
+            Cancellations within 48 hours of your appointment are charged 50% of the service.
+            No-shows are charged 100% of the service.
+          </p>
+        </div>
+
         <div style={styles.actions}>
           <Link to="/profile" style={styles.btn}>View My Appointments</Link>
           <Link to="/book" style={styles.btnOutline}>Book Another</Link>
@@ -73,7 +81,12 @@ const styles = {
   },
   title: { fontFamily: "'Cormorant', serif", fontSize: 32, color: '#EDE7DB', marginBottom: 12 },
   sub: { color: '#9A938A', fontSize: 15, lineHeight: 1.6, marginBottom: 32 },
-  summary: { textAlign: 'left', marginBottom: 32 },
+  summary: { textAlign: 'left', marginBottom: 24 },
+  policyBox: {
+    textAlign: 'left', background: '#1E1E22', border: '1px solid #2A2A2A',
+    borderRadius: 10, padding: '14px 16px', marginBottom: 32,
+  },
+  policyText: { margin: '6px 0 0', color: '#9A938A', fontSize: 12.5, lineHeight: 1.6 },
   actions: { display: 'flex', flexDirection: 'column', gap: 12 },
   btn: {
     padding: '14px', borderRadius: 999, background: '#0E0E10', color: '#C8A24B',

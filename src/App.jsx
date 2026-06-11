@@ -4,6 +4,7 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Book from './pages/Book';
 import Confirm from './pages/Confirm';
+import Memberships from './pages/Memberships';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
@@ -18,6 +19,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/book" element={<Book />} />
+          <Route path="/memberships" element={<Memberships />} />
           <Route path="/confirm/:id" element={<Confirm />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />

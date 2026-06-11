@@ -19,6 +19,7 @@ export default function Nav() {
   const links = user
     ? [
         { to: '/book', label: 'Book' },
+        { to: '/memberships', label: 'Memberships' },
         ...(isStaff ? [{ to: '/dashboard', label: 'Dashboard' }] : []),
         ...(isAdmin ? [{ to: '/admin', label: 'Admin' }] : []),
         { to: '/profile', label: 'My Appointments' },
@@ -26,6 +27,7 @@ export default function Nav() {
     : [
         { to: '/', label: 'Home' },
         { to: '/book', label: 'Book' },
+        { to: '/memberships', label: 'Memberships' },
       ];
 
   return (

@@ -19,7 +19,13 @@ export default function Admin() {
   // Service modal
   const [svcModal, setSvcModal] = useState(false);
   const [editSvc, setEditSvc] = useState(null);
-  const [svcForm, setSvcForm] = useState({ name: '', description: '', duration_minutes: 60, price_cents: 0, deposit_required: false, deposit_cents: 0 });
+  const [svcForm, setSvcForm] = useState({ name: '', description: '', category: '', duration_minutes: 60, price_cents: 0, deposit_required: false, deposit_cents: 0 });
+
+  // Discounts
+  const [discounts, setDiscounts] = useState([]);
+  const [discModal, setDiscModal] = useState(false);
+  const [editDisc, setEditDisc] = useState(null);
+  const [discForm, setDiscForm] = useState({ code: '', type: 'percent', value: 10, scope: 'all', expires_at: '', active: true });
 
   // Bulk import
   const [importModal, setImportModal] = useState(false);
@@ -43,8 +49,18 @@ export default function Admin() {
   useEffect(() => {
     const token = session?.access_token;
     if (!token) return;
-    Promise.all([api.getServices(), api.getStaff(), api.getClients(token).catch(() => ({ clients: [] }))])
-      .then(([svcs, stf, cl]) => { setServices(svcs); setStaff(stf); setClients(cl.clients || cl || []); })
+    Promise.all([
+      api.getServices(),
+      api.getStaff(),
+      api.getClients(token).catch(() => ({ clients: [] })),
+      api.getDiscounts(token).catch(() => []),
+    ])
+      .then(([svcs, stf, cl, disc]) => {
+        setServices(svcs);
+        setStaff(stf);
+        setClients(cl.clients || cl || []);
+        setDiscounts(disc.discounts || disc || []);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [session]);
@@ -84,12 +100,12 @@ export default function Admin() {
 
   function openNewSvc() {
     setEditSvc(null);
-    setSvcForm({ name: '', description: '', duration_minutes: 60, price_cents: 0, deposit_required: false, deposit_cents: 0 });
+    setSvcForm({ name: '', description: '', category: '', duration_minutes: 60, price_cents: 0, deposit_required: false, deposit_cents: 0 });
     setSvcModal(true);
   }
   function openEditSvc(svc) {
     setEditSvc(svc);
-    setSvcForm({ name: svc.name, description: svc.description || '', duration_minutes: svc.duration_minutes, price_cents: svc.price_cents, deposit_required: svc.deposit_required, deposit_cents: svc.deposit_cents || 0 });
+    setSvcForm({ name: svc.name, description: svc.description || '', category: svc.category || '', duration_minutes: svc.duration_minutes, price_cents: svc.price_cents, deposit_required: svc.deposit_required, deposit_cents: svc.deposit_cents || 0 });
     setSvcModal(true);
   }
   async function saveSvc() {
@@ -116,6 +132,72 @@ export default function Admin() {
     } catch (e) {
       notify(e.message || 'Could not delete service.');
     }
+  }
+
+  // Distinct, non-empty categories drawn from existing services — used to
+  // populate the service category datalist and the discount scope select.
+  const categories = [...new Set(services.map(s => s.category).filter(Boolean))].sort();
+
+  async function refreshDiscounts() {
+    const disc = await api.getDiscounts(session?.access_token).catch(() => []);
+    setDiscounts(disc.discounts || disc || []);
+  }
+
+  function openNewDisc() {
+    setEditDisc(null);
+    setDiscForm({ code: '', type: 'percent', value: 10, scope: 'all', expires_at: '', active: true });
+    setDiscModal(true);
+  }
+  function openEditDisc(d) {
+    setEditDisc(d);
+    setDiscForm({
+      code: d.code || '',
+      type: d.type || 'percent',
+      // fixed values are stored in cents on the server; show dollars in the form
+      value: d.type === 'fixed' ? (d.value || 0) / 100 : (d.value || 0),
+      scope: d.scope || 'all',
+      expires_at: d.expires_at ? d.expires_at.slice(0, 10) : '',
+      active: d.active !== false,
+    });
+    setDiscModal(true);
+  }
+  async function saveDisc() {
+    const token = session?.access_token;
+    if (!discForm.code.trim()) { notify('Please enter a discount code.'); return; }
+    const val = Number(discForm.value);
+    if (!val || val <= 0) { notify('Please enter a value greater than zero.'); return; }
+    if (discForm.type === 'percent' && (val < 1 || val > 100)) { notify('Percent must be between 1 and 100.'); return; }
+    const body = {
+      code: discForm.code.trim().toUpperCase(),
+      type: discForm.type,
+      // percent stays as-is (1–100); fixed is sent in cents
+      value: discForm.type === 'fixed' ? Math.round(val * 100) : Math.round(val),
+      scope: discForm.scope || 'all',
+      expires_at: discForm.expires_at || null,
+      active: discForm.active,
+    };
+    try {
+      if (editDisc) await api.updateDiscount(editDisc.id, body, token);
+      else await api.createDiscount(body, token);
+      await refreshDiscounts();
+      setDiscModal(false);
+      notify('Discount saved.');
+    } catch (e) {
+      notify(e.message || 'Could not save discount.');
+    }
+  }
+  async function deleteDisc(id) {
+    if (!confirm('Delete this discount?')) return;
+    try {
+      await api.deleteDiscount(id, session?.access_token);
+      await refreshDiscounts();
+      notify('Discount deleted.');
+    } catch (e) {
+      notify(e.message || 'Could not delete discount.');
+    }
+  }
+  function fmtDiscValue(d) {
+    return d.type === 'percent' ? `${d.value}%` : `$${(d.value / 100).toFixed(2)}`;
   }
 
   // Parse a pasted list into services. Forgiving about format: one service
@@ -231,6 +313,7 @@ export default function Admin() {
           <button className={`tab-btn ${tab === 'team' ? 'active' : ''}`} onClick={() => setTab('team')}>Team</button>
           <button className={`tab-btn ${tab === 'staff' ? 'active' : ''}`} onClick={() => setTab('staff')}>Staff & Services</button>
           <button className={`tab-btn ${tab === 'availability' ? 'active' : ''}`} onClick={() => setTab('availability')}>Availability</button>
+          <button className={`tab-btn ${tab === 'discounts' ? 'active' : ''}`} onClick={() => setTab('discounts')}>Discounts</button>
         </div>
 
         {/* Services Tab */}
@@ -369,6 +452,41 @@ export default function Admin() {
             )}
           </div>
         )}
+
+        {/* Discounts Tab */}
+        {tab === 'discounts' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+              <button onClick={openNewDisc} style={styles.addBtn}>+ Add Discount</button>
+            </div>
+            {discounts.length === 0 ? (
+              <p style={{ fontSize: 14, color: '#9A938A' }}>No discount codes yet. Add one to offer a promo at checkout.</p>
+            ) : (
+              <div style={styles.table}>
+                <div style={styles.discHead}>
+                  <span>Code</span><span>Discount</span><span>Scope</span><span>Expires</span><span>Status</span><span>Actions</span>
+                </div>
+                {discounts.map(d => (
+                  <div key={d.id} style={styles.discRow}>
+                    <span style={styles.svcName}>{d.code}</span>
+                    <span style={styles.cell}>{fmtDiscValue(d)}</span>
+                    <span style={styles.cell}>{d.scope === 'all' || !d.scope ? 'All services' : d.scope}</span>
+                    <span style={styles.cell}>{d.expires_at ? d.expires_at.slice(0, 10) : 'Never'}</span>
+                    <span style={styles.cell}>
+                      <span style={d.active !== false ? styles.pillActive : styles.pillInactive}>
+                        {d.active !== false ? 'Active' : 'Inactive'}
+                      </span>
+                    </span>
+                    <div style={styles.actions}>
+                      <button onClick={() => openEditDisc(d)} style={styles.editBtn}>Edit</button>
+                      <button onClick={() => deleteDisc(d.id)} style={styles.deleteBtn}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Service Modal */}
@@ -381,6 +499,15 @@ export default function Admin() {
           <div className="form-group">
             <label className="form-label">Description</label>
             <textarea className="form-input form-textarea" value={svcForm.description} onChange={e => setSvcForm(f => ({ ...f, description: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Category (optional)</label>
+            <input className="form-input" list="svc-category-list" placeholder="e.g. Color, Cuts, Extensions"
+              value={svcForm.category} onChange={e => setSvcForm(f => ({ ...f, category: e.target.value }))} />
+            <datalist id="svc-category-list">
+              {categories.map(c => <option key={c} value={c} />)}
+            </datalist>
+            <p style={{ fontSize: 12, color: '#9A938A', marginTop: 4 }}>Used to scope discount codes to a group of services.</p>
           </div>
           <div style={{ display: 'flex', gap: 16 }}>
             <div className="form-group" style={{ flex: 1 }}>
@@ -457,6 +584,51 @@ export default function Admin() {
           </button>
         </div>
       </Modal>
+
+      {/* Discount Modal */}
+      <Modal open={discModal} onClose={() => setDiscModal(false)} title={editDisc ? 'Edit Discount' : 'New Discount'}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="form-group">
+            <label className="form-label">Code</label>
+            <input className="form-input" placeholder="e.g. SPRING20" value={discForm.code}
+              onChange={e => setDiscForm(f => ({ ...f, code: e.target.value }))} />
+          </div>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">Type</label>
+              <select className="form-select" value={discForm.type}
+                onChange={e => setDiscForm(f => ({ ...f, type: e.target.value }))}>
+                <option value="percent">Percent (%)</option>
+                <option value="fixed">Fixed ($)</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label className="form-label">{discForm.type === 'percent' ? 'Percent off (1–100)' : 'Amount off ($)'}</label>
+              <input className="form-input" type="number" step={discForm.type === 'percent' ? '1' : '0.01'}
+                value={discForm.value} onChange={e => setDiscForm(f => ({ ...f, value: e.target.value }))} />
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Scope</label>
+            <select className="form-select" value={discForm.scope}
+              onChange={e => setDiscForm(f => ({ ...f, scope: e.target.value }))}>
+              <option value="all">All services</option>
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Expires (optional)</label>
+            <input className="form-input" type="date" value={discForm.expires_at}
+              onChange={e => setDiscForm(f => ({ ...f, expires_at: e.target.value }))} />
+          </div>
+          <label style={styles.checkLabel}>
+            <input type="checkbox" checked={discForm.active} style={{ accentColor: '#C8A24B' }}
+              onChange={e => setDiscForm(f => ({ ...f, active: e.target.checked }))} />
+            Active
+          </label>
+          <button onClick={saveDisc} style={styles.saveAvailBtn}>Save Discount</button>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -469,6 +641,10 @@ const styles = {
   table: { background: '#16161A', borderRadius: 12, border: '1px solid #2A2A2A', overflow: 'hidden' },
   tableHead: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
   tableRow: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
+  discHead: { display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr 1fr 0.9fr 1fr', padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
+  discRow: { display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr 1fr 0.9fr 1fr', padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
+  pillActive: { fontSize: 12, color: '#9ad9b4', border: '1px solid rgba(154,217,180,0.4)', borderRadius: 999, padding: '3px 10px' },
+  pillInactive: { fontSize: 12, color: '#9A938A', border: '1px solid #2A2A2A', borderRadius: 999, padding: '3px 10px' },
   svcName: { fontWeight: 600, fontSize: 15 },
   svcDesc: { fontSize: 12, color: '#9A938A', marginTop: 2 },
   cell: { fontSize: 14, color: '#9A938A' },

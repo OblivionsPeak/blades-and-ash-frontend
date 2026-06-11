@@ -16,6 +16,8 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
 
 const STEPS = ['Service', 'Stylist', 'Date & Time', 'Details', 'Confirm'];
 
+const CANCELLATION_POLICY = 'Cancellations within 48 hours of your appointment are charged 50% of the service. No-shows are charged 100% of the service.';
+
 export default function Book() {
   const { user, profile, session } = useAuth();
   const navigate = useNavigate();
@@ -39,6 +41,15 @@ export default function Book() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
+  // Cancellation policy agreement (required to submit)
+  const [agreedPolicy, setAgreedPolicy] = useState(false);
+
+  // Promo / discount code
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplied, setPromoApplied] = useState(null); // { code, label, original_cents, discounted_cents }
+  const [promoErr, setPromoErr] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
+
   useEffect(() => {
     api.getServices().then(setServices).catch(() => {});
     api.getStaff().then(setStaff).catch(() => {});
@@ -58,6 +69,34 @@ export default function Book() {
   function next() { setErr(''); setStep(s => s + 1); }
   function back() { setErr(''); setStep(s => s - 1); }
 
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    const token = session?.access_token;
+    setPromoLoading(true); setPromoErr('');
+    try {
+      const res = await api.validateDiscount({ code, service_id: selectedService.id }, token);
+      if (res.valid) {
+        setPromoApplied(res);
+        setPromoErr('');
+      } else {
+        setPromoApplied(null);
+        setPromoErr(res.error || 'That code is not valid.');
+      }
+    } catch (e) {
+      setPromoApplied(null);
+      setPromoErr(e.message || 'Could not apply that code.');
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  function clearPromo() {
+    setPromoApplied(null);
+    setPromoErr('');
+    setPromoInput('');
+  }
+
   async function confirmBooking() {
     setLoading(true); setErr('');
     const token = session?.access_token;
@@ -69,6 +108,7 @@ export default function Book() {
         service_id: selectedService.id,
         start_time: selectedSlot,
         client_notes: clientNotes,
+        ...(promoApplied ? { discount_code: promoApplied.code } : {}),
       }, token);
 
       setBooking(result.appointment);
@@ -120,7 +160,7 @@ export default function Book() {
               <div className="grid-2" style={{ marginTop: 20 }}>
                 {services.map(s => (
                   <ServiceCard key={s.id} service={s} selected={selectedService?.id === s.id}
-                    onSelect={svc => { setSelectedService(svc); setSelectedStaff(null); setSelectedSlot(null); }} />
+                    onSelect={svc => { setSelectedService(svc); setSelectedStaff(null); setSelectedSlot(null); clearPromo(); }} />
                 ))}
               </div>
               <div style={styles.navRow}>
@@ -247,17 +287,60 @@ export default function Book() {
                 <SummaryRow label="Date" value={selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : ''} />
                 <SummaryRow label="Time" value={selectedSlot ? format(new Date(selectedSlot), 'h:mm a') : ''} />
                 <div style={styles.divider} />
-                <SummaryRow label="Total" value={`$${(selectedService?.price_cents / 100).toFixed(2)}`} bold />
+                {promoApplied ? (
+                  <>
+                    <SummaryRow label="Subtotal" value={`$${(promoApplied.original_cents / 100).toFixed(2)}`} strike />
+                    <SummaryRow label={promoApplied.label || `Promo ${promoApplied.code}`} value={`– $${((promoApplied.original_cents - promoApplied.discounted_cents) / 100).toFixed(2)}`} accent />
+                    <SummaryRow label="Total" value={`$${(promoApplied.discounted_cents / 100).toFixed(2)}`} bold />
+                  </>
+                ) : (
+                  <SummaryRow label="Total" value={`$${(selectedService?.price_cents / 100).toFixed(2)}`} bold />
+                )}
                 {selectedService?.deposit_required && (
                   <SummaryRow label="Due now (deposit)" value={`$${(selectedService.deposit_cents / 100).toFixed(2)}`} bold accent />
                 )}
                 {!selectedService?.deposit_required && (
-                  <SummaryRow label="Due at salon" value={`$${(selectedService?.price_cents / 100).toFixed(2)}`} />
+                  <SummaryRow label="Due at salon" value={`$${((promoApplied ? promoApplied.discounted_cents : selectedService?.price_cents) / 100).toFixed(2)}`} />
                 )}
               </div>
+
+              {/* Promo code */}
+              <div style={styles.promoBox}>
+                <label className="form-label">Promo code</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    className="form-input"
+                    placeholder="Enter code"
+                    value={promoInput}
+                    disabled={!!promoApplied}
+                    onChange={e => setPromoInput(e.target.value)}
+                    style={{ flex: 1, textTransform: 'uppercase' }}
+                  />
+                  {promoApplied ? (
+                    <button type="button" onClick={clearPromo} style={styles.backBtn}>Remove</button>
+                  ) : (
+                    <button type="button" onClick={applyPromo} disabled={promoLoading || !promoInput.trim()} style={styles.applyBtn}>
+                      {promoLoading ? 'Applying…' : 'Apply'}
+                    </button>
+                  )}
+                </div>
+                {promoApplied && <p style={styles.promoOk}>✓ {promoApplied.label || `Code ${promoApplied.code} applied`}</p>}
+                {promoErr && <p style={styles.promoErr}>{promoErr}</p>}
+              </div>
+
+              {/* Cancellation policy */}
+              <div style={styles.policyBox}>
+                <strong style={{ color: '#D8BC7E' }}>Cancellation policy</strong>
+                <p style={{ margin: '6px 0 0', color: '#9A938A', fontSize: 13.5, lineHeight: 1.6 }}>{CANCELLATION_POLICY}</p>
+              </div>
+              <label style={styles.policyCheck}>
+                <input type="checkbox" checked={agreedPolicy} onChange={e => setAgreedPolicy(e.target.checked)} style={{ accentColor: '#C8A24B', marginTop: 3 }} />
+                <span style={{ fontSize: 14 }}>I understand and agree to the cancellation policy.</span>
+              </label>
+
               <div style={styles.navRow}>
                 <button onClick={back} style={styles.backBtn}>← Back</button>
-                <button onClick={confirmBooking} disabled={loading || !user} style={styles.confirmBtn}>
+                <button onClick={confirmBooking} disabled={loading || !user || !agreedPolicy} style={{ ...styles.confirmBtn, opacity: (loading || !user || !agreedPolicy) ? 0.4 : 1, cursor: (!user || !agreedPolicy) ? 'not-allowed' : 'pointer' }}>
                   {loading ? 'Booking…' : selectedService?.deposit_required ? 'Continue to Payment' : 'Confirm Booking'}
                 </button>
               </div>
@@ -287,11 +370,16 @@ export default function Book() {
   );
 }
 
-function SummaryRow({ label, value, bold, accent }) {
+function SummaryRow({ label, value, bold, accent, strike }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
       <span style={{ color: '#9A938A', fontSize: 14 }}>{label}</span>
-      <span style={{ fontWeight: bold ? 700 : 500, color: accent ? '#C8A24B' : '#0E0E10', fontSize: bold ? 16 : 14 }}>{value}</span>
+      <span style={{
+        fontWeight: bold ? 700 : 500,
+        color: accent ? '#C8A24B' : strike ? '#9A938A' : '#EDE7DB',
+        fontSize: bold ? 16 : 14,
+        textDecoration: strike ? 'line-through' : 'none',
+      }}>{value}</span>
     </div>
   );
 }
@@ -349,4 +437,19 @@ const styles = {
   },
   summary: { border: '1px solid #2A2A2A', borderRadius: 10, padding: '8px 20px' },
   divider: { height: 1, background: '#2A2A2A', margin: '8px 0' },
+  applyBtn: {
+    padding: '0 22px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
+    border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
+  },
+  promoBox: { marginTop: 20 },
+  promoOk: { color: '#9ad9b4', fontSize: 13, marginTop: 8 },
+  promoErr: { color: '#f8a3a3', fontSize: 13, marginTop: 8 },
+  policyBox: {
+    marginTop: 20, background: '#1E1E22', border: '1px solid #2A2A2A',
+    borderRadius: 10, padding: '14px 16px',
+  },
+  policyCheck: {
+    display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 16,
+    cursor: 'pointer', color: '#EDE7DB',
+  },
 };
