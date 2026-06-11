@@ -22,6 +22,17 @@ export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  // New-appointment modal (book on behalf of a client)
+  const [newApptOpen, setNewApptOpen] = useState(false);
+  const [naClients, setNaClients] = useState([]);
+  const [naServices, setNaServices] = useState([]);
+  const [naStaff, setNaStaff] = useState([]);
+  const [naForm, setNaForm] = useState({ client_id: '', staff_id: '', service_ids: [], date: '', slot: '' });
+  const [naSlots, setNaSlots] = useState([]);
+  const [naSlotsLoading, setNaSlotsLoading] = useState(false);
+  const [naSaving, setNaSaving] = useState(false);
+  const [naErr, setNaErr] = useState('');
+
   const isAdmin = profile?.role === 'admin';
   const isStaff = profile?.role === 'staff' || isAdmin;
 
@@ -45,6 +56,85 @@ export default function Dashboard() {
     if (!session?.access_token) return;
     api.getDashboard(session.access_token).then(setStats).catch(() => {});
   }, [session]);
+
+  async function openNewAppt() {
+    const token = session?.access_token;
+    setNaErr('');
+    setNaForm({ client_id: '', staff_id: user.id, service_ids: [], date: '', slot: '' });
+    setNaSlots([]);
+    setNewApptOpen(true);
+    try {
+      const [cl, svcs, stf] = await Promise.all([
+        api.getClients(token).catch(() => ({ clients: [] })),
+        api.getServices(),
+        api.getStaff(),
+      ]);
+      setNaClients(cl.clients || []);
+      setNaServices(svcs);
+      setNaStaff(stf);
+      // Default the stylist sensibly: the signed-in user if they're bookable,
+      // otherwise the first staff member.
+      const self = stf.find(s => s.id === user.id);
+      setNaForm(f => ({ ...f, staff_id: (self || stf[0])?.id || '' }));
+    } catch (e) {
+      setNaErr(e.message || 'Could not load booking data.');
+    }
+  }
+
+  // Fetch slots whenever staff + services + date are all chosen.
+  useEffect(() => {
+    if (!newApptOpen || !naForm.staff_id || naForm.service_ids.length === 0 || !naForm.date) {
+      setNaSlots([]);
+      return;
+    }
+    setNaSlotsLoading(true);
+    api.getAvailability({ staff_id: naForm.staff_id, service_ids: naForm.service_ids.join(','), date: naForm.date })
+      .then(data => setNaSlots(Array.isArray(data) ? data : (data.slots || [])))
+      .catch(() => setNaSlots([]))
+      .finally(() => setNaSlotsLoading(false));
+  }, [newApptOpen, naForm.staff_id, naForm.service_ids, naForm.date]);
+
+  function naToggleService(id) {
+    setNaForm(f => ({
+      ...f,
+      slot: '',
+      service_ids: f.service_ids.includes(id) ? f.service_ids.filter(x => x !== id) : [...f.service_ids, id],
+    }));
+  }
+
+  async function saveNewAppt() {
+    const token = session?.access_token;
+    if (!naForm.client_id || !naForm.staff_id || naForm.service_ids.length === 0 || !naForm.slot) {
+      setNaErr('Please choose a client, at least one service, and a time.');
+      return;
+    }
+    setNaSaving(true);
+    setNaErr('');
+    try {
+      const result = await api.createAppointment({
+        client_id: naForm.client_id,
+        staff_id: naForm.staff_id,
+        service_ids: naForm.service_ids,
+        start_time: naForm.slot,
+      }, token);
+      setNewApptOpen(false);
+      // Jump the calendar to the new appointment's day so it's visible.
+      const apptDay = new Date(result.appointment.start_time);
+      setSelectedDate(apptDay);
+      const params = { date: format(apptDay, 'yyyy-MM-dd') };
+      if (!isAdmin) params.staff_id = user.id;
+      const data = await api.getAppointments(token, params);
+      setAppointments(data.appointments || data || []);
+    } catch (e) {
+      setNaErr(e.message || 'Could not create the appointment.');
+    } finally {
+      setNaSaving(false);
+    }
+  }
+
+  const naTotal = naServices
+    .filter(s => naForm.service_ids.includes(s.id))
+    .reduce((sum, s) => sum + (s.price_cents || 0), 0);
 
   async function updateStatus(id, status) {
     setUpdatingStatus(true);
@@ -96,6 +186,9 @@ export default function Dashboard() {
           <div style={styles.dayHeader}>
             <h2 style={styles.dayTitle}>{format(selectedDate, 'EEEE, MMMM d')}</h2>
             <span style={styles.dayCount}>{dayAppts.length} appointment{dayAppts.length !== 1 ? 's' : ''}</span>
+            {isAdmin && (
+              <button onClick={openNewAppt} style={styles.newApptBtn}>+ New Appointment</button>
+            )}
           </div>
 
           {loading ? (
@@ -130,6 +223,91 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* New appointment modal */}
+      <Modal open={newApptOpen} onClose={() => setNewApptOpen(false)} title="New Appointment">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {naErr && <div className="alert alert-error">{naErr}</div>}
+
+          <div className="form-group">
+            <label className="form-label">Client</label>
+            <select className="form-select" value={naForm.client_id}
+              onChange={e => setNaForm(f => ({ ...f, client_id: e.target.value }))}>
+              <option value="">— Choose a client —</option>
+              {naClients.map(c => (
+                <option key={c.id} value={c.id}>{c.full_name || '(no name)'}{c.phone ? ` · ${c.phone}` : ''}</option>
+              ))}
+            </select>
+            <p style={{ fontSize: 12, color: '#9A938A', marginTop: 4 }}>
+              Client not listed? Add them first in Admin → Clients.
+            </p>
+          </div>
+
+          {naStaff.length > 1 && (
+            <div className="form-group">
+              <label className="form-label">Stylist</label>
+              <select className="form-select" value={naForm.staff_id}
+                onChange={e => setNaForm(f => ({ ...f, staff_id: e.target.value, slot: '' }))}>
+                {naStaff.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Services</label>
+            <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid #2A2A2A', borderRadius: 8, padding: '10px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {naServices.map(s => (
+                <label key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={naForm.service_ids.includes(s.id)}
+                    onChange={() => naToggleService(s.id)} style={{ accentColor: '#C8A24B' }} />
+                  <span style={{ flex: 1 }}>{s.name}</span>
+                  <span style={{ color: '#9A938A', fontSize: 13 }}>${(s.price_cents / 100).toFixed(2)}</span>
+                </label>
+              ))}
+            </div>
+            {naForm.service_ids.length > 0 && (
+              <p style={{ fontSize: 13, color: '#C8A24B', marginTop: 6 }}>
+                {naForm.service_ids.length} selected · ${(naTotal / 100).toFixed(2)}
+              </p>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Date</label>
+            <input className="form-input" type="date" value={naForm.date}
+              min={format(new Date(), 'yyyy-MM-dd')}
+              onChange={e => setNaForm(f => ({ ...f, date: e.target.value, slot: '' }))} />
+          </div>
+
+          {naForm.date && naForm.service_ids.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Time</label>
+              {naSlotsLoading ? (
+                <div className="loading-center"><div className="spinner" /></div>
+              ) : naSlots.length === 0 ? (
+                <p style={{ fontSize: 13, color: '#9A938A' }}>No open times that day — try another date.</p>
+              ) : (
+                <select className="form-select" value={naForm.slot}
+                  onChange={e => setNaForm(f => ({ ...f, slot: e.target.value }))}>
+                  <option value="">— Choose a time —</option>
+                  {naSlots.map(slot => (
+                    <option key={slot} value={slot}>{format(new Date(slot), 'h:mm a')}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
+          <p style={{ fontSize: 12, color: '#9A938A', lineHeight: 1.5 }}>
+            Booked appointments are confirmed immediately (no online deposit) — payment is settled at the salon.
+            The client gets a confirmation email.
+          </p>
+
+          <button onClick={saveNewAppt} disabled={naSaving} style={styles.confirmNewBtn}>
+            {naSaving ? 'Booking…' : 'Book Appointment'}
+          </button>
+        </div>
+      </Modal>
 
       {/* Appointment modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Appointment Details">
@@ -200,7 +378,16 @@ const styles = {
   legendItem: { display: 'flex', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
   main: { flex: 1 },
-  dayHeader: { display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 20 },
+  dayHeader: { display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 20, flexWrap: 'wrap' },
+  newApptBtn: {
+    marginLeft: 'auto', padding: '9px 22px', borderRadius: 999, background: '#C8A24B',
+    color: '#0E0E10', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    fontFamily: "'Jost', sans-serif",
+  },
+  confirmNewBtn: {
+    padding: '12px 32px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
+    border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
+  },
   dayTitle: { fontFamily: "'Cormorant', serif", fontSize: 24, color: '#EDE7DB' },
   dayCount: { fontSize: 13, color: '#9A938A' },
   empty: { textAlign: 'center', padding: '60px 0' },

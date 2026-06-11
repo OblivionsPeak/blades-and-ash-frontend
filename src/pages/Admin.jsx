@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import Modal from '../components/Modal';
+import CardSetupForm from '../components/CardSetupForm';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -40,6 +45,14 @@ export default function Admin() {
 
   // Staff services
   const [staffServices, setStaffServices] = useState({});
+
+  // Clients tab
+  const [clientModal, setClientModal] = useState(false);
+  const [clientForm, setClientForm] = useState({ full_name: '', email: '', phone: '' });
+  const [savingClient, setSavingClient] = useState(false);
+  const [clientSearch, setClientSearch] = useState('');
+  // Card-on-file modal: which client, the SetupIntent secret, saved cards
+  const [cardModal, setCardModal] = useState(null); // { client, clientSecret, cards, loading }
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -300,6 +313,63 @@ export default function Admin() {
 
   function notify(m) { setMsg(m); setTimeout(() => setMsg(''), 3000); }
 
+  async function saveClient() {
+    const token = session?.access_token;
+    if (!clientForm.full_name.trim() || !clientForm.email.trim()) {
+      notify('Name and email are required.');
+      return;
+    }
+    setSavingClient(true);
+    try {
+      const res = await api.createClient({
+        full_name: clientForm.full_name.trim(),
+        email: clientForm.email.trim(),
+        phone: clientForm.phone.trim(),
+      }, token);
+      await refreshTeam();
+      setClientModal(false);
+      setClientForm({ full_name: '', email: '', phone: '' });
+      notify('Client added.');
+      // Offer to capture their card right away.
+      if (res.client && confirm('Client added. Save a card on file now?')) {
+        openCardModal(res.client);
+      }
+    } catch (e) {
+      notify(e.message || 'Could not add client.');
+    } finally {
+      setSavingClient(false);
+    }
+  }
+
+  async function openCardModal(client) {
+    const token = session?.access_token;
+    setCardModal({ client, clientSecret: null, cards: [], loading: true });
+    try {
+      const [setup, cardsRes] = await Promise.all([
+        api.createCardSetup(client.id, token),
+        api.getClientCards(client.id, token).catch(() => ({ cards: [] })),
+      ]);
+      setCardModal({ client, clientSecret: setup.client_secret, cards: cardsRes.cards || [], loading: false });
+    } catch (e) {
+      setCardModal(null);
+      notify(e.message || 'Could not start card setup.');
+    }
+  }
+
+  async function onCardSaved() {
+    const client = cardModal?.client;
+    setCardModal(null);
+    notify(`Card saved for ${client?.full_name || 'client'}.`);
+    // Refresh so the "Card on file" column picks up the new stripe_customer_id.
+    await refreshTeam();
+  }
+
+  const filteredClients = clientSearch.trim()
+    ? clients.filter(c =>
+        (c.full_name || '').toLowerCase().includes(clientSearch.trim().toLowerCase())
+        || (c.phone || '').includes(clientSearch.trim()))
+    : clients;
+
   if (loading) return <div className="loading-center"><div className="spinner" /></div>;
 
   return (
@@ -310,6 +380,7 @@ export default function Admin() {
 
         <div className="tab-bar">
           <button className={`tab-btn ${tab === 'services' ? 'active' : ''}`} onClick={() => setTab('services')}>Services</button>
+          <button className={`tab-btn ${tab === 'clients' ? 'active' : ''}`} onClick={() => setTab('clients')}>Clients</button>
           <button className={`tab-btn ${tab === 'team' ? 'active' : ''}`} onClick={() => setTab('team')}>Team</button>
           <button className={`tab-btn ${tab === 'staff' ? 'active' : ''}`} onClick={() => setTab('staff')}>Staff & Services</button>
           <button className={`tab-btn ${tab === 'availability' ? 'active' : ''}`} onClick={() => setTab('availability')}>Availability</button>
@@ -343,6 +414,46 @@ export default function Admin() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Clients Tab */}
+        {tab === 'clients' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+              <input
+                className="form-input"
+                style={{ maxWidth: 280 }}
+                placeholder="Search by name or phone…"
+                value={clientSearch}
+                onChange={e => setClientSearch(e.target.value)}
+              />
+              <button onClick={() => { setClientForm({ full_name: '', email: '', phone: '' }); setClientModal(true); }} style={styles.addBtn}>+ Add Client</button>
+            </div>
+            {filteredClients.length === 0 ? (
+              <p style={{ fontSize: 14, color: '#9A938A' }}>
+                {clients.length === 0 ? 'No clients yet. Add one to get started.' : 'No clients match that search.'}
+              </p>
+            ) : (
+              <div className="admin-table-scroll" style={styles.table}>
+                <div className="admin-table-inner" style={styles.tableHead}>
+                  <span>Client</span><span>Phone</span><span>Card on file</span><span /><span>Actions</span>
+                </div>
+                {filteredClients.map(c => (
+                  <div key={c.id} className="admin-table-inner" style={styles.tableRow}>
+                    <div style={styles.svcName}>{c.full_name || '(no name)'}</div>
+                    <span style={styles.cell}>{c.phone || '—'}</span>
+                    <span style={styles.cell}>{c.stripe_customer_id ? 'Yes' : '—'}</span>
+                    <span />
+                    <div style={styles.actions}>
+                      <button onClick={() => openCardModal(c)} style={styles.editBtn}>
+                        {c.stripe_customer_id ? 'Manage card' : 'Add card'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -583,6 +694,69 @@ export default function Admin() {
             {importing ? 'Importing…' : 'Import Services'}
           </button>
         </div>
+      </Modal>
+
+      {/* Add Client Modal */}
+      <Modal open={clientModal} onClose={() => setClientModal(false)} title="Add Client">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <p style={{ fontSize: 13, color: '#9A938A', lineHeight: 1.6 }}>
+            Creates a client record so you can book appointments for them. They'll get
+            booking confirmations at this email, and can claim the account later with
+            "Forgot password" if they ever want to sign in.
+          </p>
+          <div className="form-group">
+            <label className="form-label">Full Name</label>
+            <input className="form-input" value={clientForm.full_name}
+              onChange={e => setClientForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Jane Smith" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Email</label>
+            <input className="form-input" type="email" value={clientForm.email}
+              onChange={e => setClientForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Phone</label>
+            <input className="form-input" type="tel" value={clientForm.phone}
+              onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 (555) 000-0000" />
+          </div>
+          <button onClick={saveClient} disabled={savingClient} style={styles.saveAvailBtn}>
+            {savingClient ? 'Adding…' : 'Add Client'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Card on File Modal */}
+      <Modal open={!!cardModal} onClose={() => setCardModal(null)} title={`Card on File — ${cardModal?.client?.full_name || ''}`}>
+        {cardModal?.loading ? (
+          <div className="loading-center"><div className="spinner" /></div>
+        ) : cardModal && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {cardModal.cards.length > 0 && (
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#9A938A', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>Saved cards</p>
+                {cardModal.cards.map(card => (
+                  <div key={card.id} style={{ fontSize: 14, color: '#EDE7DB', padding: '6px 0' }}>
+                    💳 {card.brand?.toUpperCase()} •••• {card.last4} — exp {card.exp_month}/{card.exp_year}
+                  </div>
+                ))}
+                <div className="divider" style={{ margin: '12px 0' }} />
+                <p style={{ fontSize: 13, color: '#9A938A' }}>Add a new card below (it becomes an additional card on file):</p>
+              </div>
+            )}
+            {cardModal.clientSecret && (
+              <Elements stripe={stripePromise} options={{ clientSecret: cardModal.clientSecret }}>
+                <CardSetupForm
+                  clientSecret={cardModal.clientSecret}
+                  onSuccess={onCardSaved}
+                  onError={() => {}}
+                />
+              </Elements>
+            )}
+            <p style={{ fontSize: 12, color: '#9A938A', lineHeight: 1.5 }}>
+              Card details go directly to Stripe — they're never stored on our server.
+            </p>
+          </div>
+        )}
       </Modal>
 
       {/* Discount Modal */}

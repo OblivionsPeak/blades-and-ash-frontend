@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
-export default function PaymentForm({ amount, clientSecret, onSuccess, onError }) {
+// Saves a card on file against a SetupIntent (no charge). Must be rendered
+// inside an <Elements> provider.
+export default function CardSetupForm({ clientSecret, onSuccess, onError }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -14,7 +16,7 @@ export default function PaymentForm({ amount, clientSecret, onSuccess, onError }
     setErr('');
 
     const cardElement = elements.getElement(CardElement);
-    const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+    const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
       payment_method: { card: cardElement },
     });
 
@@ -22,8 +24,8 @@ export default function PaymentForm({ amount, clientSecret, onSuccess, onError }
     if (error) {
       setErr(error.message);
       onError?.(error.message);
-    } else if (paymentIntent.status === 'succeeded') {
-      onSuccess(paymentIntent);
+    } else if (setupIntent.status === 'succeeded') {
+      onSuccess(setupIntent);
     }
   }
 
@@ -35,7 +37,7 @@ export default function PaymentForm({ amount, clientSecret, onSuccess, onError }
       </div>
       {err && <p style={styles.error}>{err}</p>}
       <button type="submit" disabled={!stripe || loading} style={styles.btn}>
-        {loading ? 'Processing…' : `Pay $${(amount / 100).toFixed(2)}`}
+        {loading ? 'Saving…' : 'Save Card on File'}
       </button>
     </form>
   );

@@ -42,5 +42,8 @@ export const api = {
 
   getDashboard: (token) => apiFetch('/api/admin/dashboard', {}, token),
   getClients: (token) => apiFetch('/api/admin/clients', {}, token),
+  createClient: (body, token) => apiFetch('/api/admin/clients', { method: 'POST', body: JSON.stringify(body) }, token),
+  createCardSetup: (id, token) => apiFetch(`/api/admin/clients/${id}/card-setup`, { method: 'POST' }, token),
+  getClientCards: (id, token) => apiFetch(`/api/admin/clients/${id}/cards`, {}, token),
   updateUserRole: (id, role, token) => apiFetch(`/api/admin/profiles/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }, token),
 };

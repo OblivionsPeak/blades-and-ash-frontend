@@ -503,6 +503,7 @@ export default function Book() {
               <Elements stripe={stripePromise} options={{ clientSecret }}>
                 <PaymentForm
                   amount={depositCents}
+                  clientSecret={clientSecret}
                   onSuccess={onPaymentSuccess}
                   onError={msg => setErr(msg)}
                 />
