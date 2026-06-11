@@ -6,7 +6,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { format, startOfDay } from 'date-fns';
 import { api } from '../api';
-import { apptItems } from '../utils';
+import { apptItems, groupServicesByCategory } from '../utils';
 import { useAuth } from '../AuthContext';
 import ServiceCard from '../components/ServiceCard';
 import StaffCard from '../components/StaffCard';
@@ -22,10 +22,6 @@ const STEP_LABELS = {
   details: 'Details',
   confirm: 'Confirm',
 };
-
-// Display order for service category groups on the first step. Unknown
-// categories slot in before 'Other'; uncategorized services land in 'Other'.
-const CATEGORY_ORDER = ['Haircuts', 'Color', 'Perms', 'Extensions', 'Treatments & Styling', 'Waxing', 'Add-Ons', 'Other'];
 
 const CANCELLATION_POLICY = 'Cancellations within 48 hours of your appointment are charged 50% of the service. No-shows are charged 100% of the service.';
 
@@ -87,16 +83,7 @@ export default function Book() {
     : ['service', 'stylist', 'datetime', 'details', 'confirm'];
   const currentStep = stepKeys[step];
 
-  // Group services by category for the first step. If no service has a
-  // category yet (migration not run), fall back to a single flat list.
-  const knownCats = new Set(CATEGORY_ORDER);
-  const extraCats = [...new Set(services.map(s => s.category).filter(c => c && !knownCats.has(c)))].sort();
-  const orderedCats = [...CATEGORY_ORDER.slice(0, -1), ...extraCats, 'Other'];
-  const serviceGroups = services.some(s => s.category)
-    ? orderedCats
-        .map(cat => ({ category: cat, items: services.filter(s => (s.category || 'Other') === cat) }))
-        .filter(g => g.items.length > 0)
-    : [{ category: null, items: services }];
+  const serviceGroups = groupServicesByCategory(services);
 
   useEffect(() => {
     if (!selectedDate || selectedServices.length === 0) return;

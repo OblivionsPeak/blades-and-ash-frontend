@@ -21,3 +21,19 @@ export function apptServiceNames(appointment) {
   if (items.length === 0) return 'Service';
   return items.map(i => i.name).join(' · ');
 }
+
+// Display order for service category groups. Unknown categories slot in
+// before 'Other'; uncategorized services land in 'Other'.
+export const CATEGORY_ORDER = ['Haircuts', 'Color', 'Perms', 'Extensions', 'Treatments & Styling', 'Waxing', 'Add-Ons', 'Other'];
+
+// Group services into [{ category, items }] in CATEGORY_ORDER. If no service
+// has a category at all, returns a single flat group with category: null.
+export function groupServicesByCategory(services) {
+  if (!services.some(s => s.category)) return [{ category: null, items: services }];
+  const known = new Set(CATEGORY_ORDER);
+  const extras = [...new Set(services.map(s => s.category).filter(c => c && !known.has(c)))].sort();
+  const ordered = [...CATEGORY_ORDER.slice(0, -1), ...extras, 'Other'];
+  return ordered
+    .map(cat => ({ category: cat, items: services.filter(s => (s.category || 'Other') === cat) }))
+    .filter(g => g.items.length > 0);
+}

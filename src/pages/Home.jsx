@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
+import { groupServicesByCategory } from '../utils';
 import ServiceCard from '../components/ServiceCard';
 import StaffCard from '../components/StaffCard';
 
@@ -47,9 +48,14 @@ export default function Home() {
           {services.length === 0 ? (
             <p style={styles.empty}>Services coming soon.</p>
           ) : (
-            <div className="grid-3">
-              {services.map(s => <ServiceCard key={s.id} service={s} />)}
-            </div>
+            groupServicesByCategory(services).map(group => (
+              <div key={group.category || 'all'}>
+                {group.category && <h3 style={styles.categoryHeader}>{group.category}</h3>}
+                <div className="grid-3">
+                  {group.items.map(s => <ServiceCard key={s.id} service={s} />)}
+                </div>
+              </div>
+            ))
           )}
           <div style={{ textAlign: 'center', marginTop: 40 }}>
             <Link to="/book" className="btn btn-primary btn-lg">Book Now</Link>
@@ -111,6 +117,10 @@ const styles = {
   sectionLabel: { fontSize: 12, fontWeight: 600, letterSpacing: '0.14em', color: '#C8A24B' },
   sectionTitle: { fontFamily: "'Cormorant', serif", fontSize: 40, marginTop: 8 },
   empty: { textAlign: 'center', color: '#9A938A', padding: '40px 0' },
+  categoryHeader: {
+    fontFamily: "'Cormorant', serif", fontSize: 26, color: '#C8A24B',
+    margin: '40px 0 20px', fontWeight: 600, textAlign: 'center',
+  },
   ctaStrip: { background: '#0E0E10', padding: '80px 0', borderTop: '1px solid #2A2A2A' },
   ctaTitle: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 12 },
   ctaSub: { color: '#9A938A', fontSize: 16, marginBottom: 32 },
