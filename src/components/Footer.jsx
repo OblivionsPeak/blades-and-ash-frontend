@@ -18,5 +18,5 @@ const styles = {
   brand: { display: 'flex', alignItems: 'center', gap: 10 },
   scissor: { color: '#C8A24B', fontSize: 20 },
   name: { fontFamily: "'Cormorant', serif", color: '#fff', fontSize: 16, letterSpacing: '0.1em' },
-  copy: { color: '#666', fontSize: 13 },
+  copy: { color: '#9A938A', fontSize: 13 },
 };

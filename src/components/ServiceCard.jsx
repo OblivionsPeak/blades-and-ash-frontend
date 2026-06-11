@@ -25,23 +25,23 @@ export default function ServiceCard({ service, selected, onSelect }) {
 
 const styles = {
   card: {
-    background: '#fff', borderRadius: 12,
-    border: '2px solid #E0DCDA',
+    background: '#16161A', borderRadius: 12,
+    border: '2px solid #2A2A2A',
     padding: 20, transition: 'all 0.2s',
     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
   },
   cardSelected: {
     border: '2px solid #C8A24B',
     boxShadow: '0 4px 16px rgba(201,168,76,0.2)',
-    background: '#FFFDF7',
+    background: 'rgba(200,162,75,0.1)',
   },
   top: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
-  name: { fontFamily: "'Cormorant', serif", fontSize: 17, color: '#0E0E10' },
+  name: { fontFamily: "'Cormorant', serif", fontSize: 17, color: '#EDE7DB' },
   price: { fontSize: 20, fontWeight: 700, color: '#C8A24B' },
-  desc: { fontSize: 14, color: '#666', marginBottom: 12, lineHeight: 1.5 },
+  desc: { fontSize: 14, color: '#9A938A', marginBottom: 12, lineHeight: 1.5 },
   meta: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   pill: {
     fontSize: 12, padding: '4px 10px',
-    background: '#F5F3EF', borderRadius: 999, color: '#555',
+    background: '#1E1E22', borderRadius: 999, color: '#9A938A',
   },
 };

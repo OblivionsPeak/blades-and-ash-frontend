@@ -29,16 +29,16 @@ const styles = {
     zIndex: 1000, padding: 16,
   },
   modal: {
-    background: '#fff', borderRadius: 16,
+    background: '#16161A', borderRadius: 16,
     width: '100%', maxWidth: 520,
     boxShadow: '0 24px 64px rgba(0,0,0,0.2)',
     maxHeight: '90vh', overflow: 'auto',
   },
   header: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '20px 24px', borderBottom: '1px solid #E0DCDA',
+    padding: '20px 24px', borderBottom: '1px solid #2A2A2A',
   },
-  title: { fontFamily: "'Cormorant', serif", fontSize: 20, color: '#0E0E10' },
+  title: { fontFamily: "'Cormorant', serif", fontSize: 20, color: '#EDE7DB' },
   close: {
     background: 'none', border: 'none', cursor: 'pointer',
     fontSize: 18, color: '#999', padding: 4, lineHeight: 1,

@@ -48,8 +48,8 @@ export default function Confirm() {
 
 function Row({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #F0EDE9' }}>
-      <span style={{ color: '#888', fontSize: 14 }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #2A2A2A' }}>
+      <span style={{ color: '#9A938A', fontSize: 14 }}>{label}</span>
       <span style={{ fontWeight: 600, fontSize: 14 }}>{value}</span>
     </div>
   );
@@ -61,7 +61,7 @@ const styles = {
     alignItems: 'center', justifyContent: 'center', padding: 24,
   },
   card: {
-    background: '#fff', borderRadius: 20, padding: 48,
+    background: '#16161A', borderRadius: 20, padding: 48,
     maxWidth: 480, width: '100%', textAlign: 'center',
     boxShadow: '0 8px 40px rgba(0,0,0,0.1)',
   },
@@ -71,8 +71,8 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 32, fontWeight: 700, margin: '0 auto 24px',
   },
-  title: { fontFamily: "'Cormorant', serif", fontSize: 32, color: '#0E0E10', marginBottom: 12 },
-  sub: { color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 32 },
+  title: { fontFamily: "'Cormorant', serif", fontSize: 32, color: '#EDE7DB', marginBottom: 12 },
+  sub: { color: '#9A938A', fontSize: 15, lineHeight: 1.6, marginBottom: 32 },
   summary: { textAlign: 'left', marginBottom: 32 },
   actions: { display: 'flex', flexDirection: 'column', gap: 12 },
   btn: {
@@ -81,7 +81,7 @@ const styles = {
     fontFamily: "'Jost', sans-serif",
   },
   btnOutline: {
-    padding: '14px', borderRadius: 999, border: '2px solid #E0DCDA',
-    color: '#666', fontSize: 15, fontWeight: 500, textDecoration: 'none', display: 'block',
+    padding: '14px', borderRadius: 999, border: '2px solid #2A2A2A',
+    color: '#9A938A', fontSize: 15, fontWeight: 500, textDecoration: 'none', display: 'block',
   },
 };

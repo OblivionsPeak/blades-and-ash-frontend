@@ -130,7 +130,7 @@ const styles = {
     display: 'none', flexDirection: 'column', gap: 5,
     background: 'none', border: 'none', cursor: 'pointer', padding: 8,
   },
-  burgerLine: { display: 'block', width: 22, height: 2, background: '#fff', borderRadius: 2 },
+  burgerLine: { display: 'block', width: 22, height: 2, background: '#EDE7DB', borderRadius: 2 },
   drawer: {
     display: 'flex', flexDirection: 'column',
     borderTop: '1px solid #2A2A2A', background: '#0E0E10',

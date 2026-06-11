@@ -84,7 +84,7 @@ export default function Dashboard() {
             {STATUS_OPTIONS.map(s => (
               <div key={s} style={styles.legendItem}>
                 <span style={{ ...styles.dot, background: STATUS_COLORS[s] }} />
-                <span style={{ fontSize: 12, color: '#666', textTransform: 'capitalize' }}>{s.replace('_', ' ')}</span>
+                <span style={{ fontSize: 12, color: '#9A938A', textTransform: 'capitalize' }}>{s.replace('_', ' ')}</span>
               </div>
             ))}
           </div>
@@ -101,7 +101,7 @@ export default function Dashboard() {
             <div className="loading-center"><div className="spinner" /></div>
           ) : dayAppts.length === 0 ? (
             <div style={styles.empty}>
-              <p style={{ color: '#888' }}>No appointments scheduled for this day.</p>
+              <p style={{ color: '#9A938A' }}>No appointments scheduled for this day.</p>
             </div>
           ) : (
             <div style={styles.timeline}>
@@ -113,12 +113,12 @@ export default function Dashboard() {
                 >
                   <div style={styles.apptTime}>
                     {format(new Date(a.start_time), 'h:mm a')}
-                    <span style={{ color: '#aaa' }}> → {format(new Date(a.end_time), 'h:mm a')}</span>
+                    <span style={{ color: '#9A938A' }}> → {format(new Date(a.end_time), 'h:mm a')}</span>
                   </div>
                   <div style={styles.apptService}>{a.service?.name || 'Service'}</div>
                   <div style={styles.apptClient}>{a.client?.full_name || 'Client'}</div>
                   {isAdmin && a.staff && (
-                    <div style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>with {a.staff.full_name}</div>
+                    <div style={{ fontSize: 12, color: '#9A938A', marginTop: 2 }}>with {a.staff.full_name}</div>
                   )}
                   <div style={{ marginTop: 8 }}>
                     <StatusBadge status={a.status} />
@@ -163,8 +163,8 @@ export default function Dashboard() {
 function Row({ label, value }) {
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 600, color: '#aaa', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
-      <div style={{ fontSize: 15, color: '#0E0E10' }}>{value}</div>
+      <div style={{ fontSize: 11, fontWeight: 600, color: '#9A938A', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
+      <div style={{ fontSize: 15, color: '#EDE7DB' }}>{value}</div>
     </div>
   );
 }
@@ -187,29 +187,29 @@ const STATUS_COLORS = {
 };
 
 const styles = {
-  page: { background: '#F9F7F4', minHeight: 'calc(100vh - 64px)', paddingBottom: 60 },
+  page: { background: '#0E0E10', minHeight: 'calc(100vh - 64px)', paddingBottom: 60 },
   statsBar: { background: '#0E0E10', borderBottom: '1px solid #2A2A2A', padding: '16px 0' },
   statsInner: { display: 'flex', gap: 40, justifyContent: 'center' },
   statPill: { textAlign: 'center' },
   statValue: { fontSize: 28, fontWeight: 700, color: '#C8A24B', fontFamily: "'Cormorant', serif" },
-  statLabel: { fontSize: 12, color: '#888', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 },
+  statLabel: { fontSize: 12, color: '#9A938A', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: 2 },
   layout: { display: 'flex', gap: 32, marginTop: 32, alignItems: 'flex-start' },
   sidebar: { flex: '0 0 280px', display: 'flex', flexDirection: 'column', gap: 16 },
-  legend: { background: '#fff', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 },
+  legend: { background: '#16161A', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 8 },
   legendItem: { display: 'flex', alignItems: 'center', gap: 8 },
   dot: { width: 10, height: 10, borderRadius: '50%', flexShrink: 0 },
   main: { flex: 1 },
   dayHeader: { display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 20 },
-  dayTitle: { fontFamily: "'Cormorant', serif", fontSize: 24, color: '#0E0E10' },
-  dayCount: { fontSize: 13, color: '#888' },
+  dayTitle: { fontFamily: "'Cormorant', serif", fontSize: 24, color: '#EDE7DB' },
+  dayCount: { fontSize: 13, color: '#9A938A' },
   empty: { textAlign: 'center', padding: '60px 0' },
   timeline: { display: 'flex', flexDirection: 'column', gap: 12 },
   apptBlock: {
-    background: '#fff', borderRadius: 10, padding: '16px 20px',
+    background: '#16161A', borderRadius: 10, padding: '16px 20px',
     cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
     transition: 'box-shadow 0.2s',
   },
-  apptTime: { fontSize: 13, color: '#888', marginBottom: 4 },
-  apptService: { fontFamily: "'Cormorant', serif", fontSize: 17, color: '#0E0E10', fontWeight: 600 },
-  apptClient: { fontSize: 14, color: '#555', marginTop: 2 },
+  apptTime: { fontSize: 13, color: '#9A938A', marginBottom: 4 },
+  apptService: { fontFamily: "'Cormorant', serif", fontSize: 17, color: '#EDE7DB', fontWeight: 600 },
+  apptClient: { fontSize: 14, color: '#9A938A', marginTop: 2 },
 };

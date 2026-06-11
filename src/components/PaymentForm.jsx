@@ -43,16 +43,16 @@ export default function PaymentForm({ amount, onSuccess, onError }) {
 
 const CARD_OPTIONS = {
   style: {
-    base: { fontSize: '15px', fontFamily: "'Jost', sans-serif", color: '#0E0E10', '::placeholder': { color: '#aaa' } },
+    base: { fontSize: '15px', fontFamily: "'Jost', sans-serif", color: '#EDE7DB', '::placeholder': { color: '#9A938A' } },
     invalid: { color: '#C0392B' },
   },
 };
 
 const styles = {
   form: { display: 'flex', flexDirection: 'column', gap: 16 },
-  label: { fontSize: 13, fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.04em' },
+  label: { fontSize: 13, fontWeight: 600, color: '#9A938A', textTransform: 'uppercase', letterSpacing: '0.04em' },
   cardBox: {
-    padding: '14px 16px', border: '1.5px solid #E0DCDA', borderRadius: 8, background: '#fff',
+    padding: '14px 16px', border: '1.5px solid #2A2A2A', borderRadius: 8, background: '#16161A',
   },
   error: { fontSize: 14, color: '#C0392B' },
   btn: {

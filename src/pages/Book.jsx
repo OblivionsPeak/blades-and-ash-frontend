@@ -172,7 +172,7 @@ export default function Book() {
                 </div>
                 <div style={styles.slotsWrap}>
                   {!selectedDate ? (
-                    <p style={{ color: '#888', fontSize: 14 }}>Select a date to see available times.</p>
+                    <p style={{ color: '#9A938A', fontSize: 14 }}>Select a date to see available times.</p>
                   ) : slotsLoading ? (
                     <div className="loading-center"><div className="spinner" /></div>
                   ) : (
@@ -199,7 +199,7 @@ export default function Book() {
                   <span style={styles.profileAvatar}>{profile?.full_name?.[0] || '?'}</span>
                   <div>
                     <div style={{ fontWeight: 600 }}>{profile?.full_name}</div>
-                    <div style={{ fontSize: 13, color: '#888' }}>{user.email}</div>
+                    <div style={{ fontSize: 13, color: '#9A938A' }}>{user.email}</div>
                   </div>
                 </div>
               ) : (
@@ -261,7 +261,7 @@ export default function Book() {
                   {loading ? 'Booking…' : selectedService?.deposit_required ? 'Continue to Payment' : 'Confirm Booking'}
                 </button>
               </div>
-              {!user && <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#888' }}>You must <a href="/login" style={{ color: '#C8A24B' }}>sign in</a> to complete your booking.</p>}
+              {!user && <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#9A938A' }}>You must <a href="/login" style={{ color: '#C8A24B' }}>sign in</a> to complete your booking.</p>}
             </div>
           )}
 
@@ -269,7 +269,7 @@ export default function Book() {
           {clientSecret && (
             <div>
               <h2 style={styles.stepTitle}>Payment</h2>
-              <p style={{ color: '#666', marginBottom: 24, fontSize: 14 }}>
+              <p style={{ color: '#9A938A', marginBottom: 24, fontSize: 14 }}>
                 A deposit secures your appointment. The remaining balance is due at the salon.
               </p>
               <Elements stripe={stripePromise} options={{ clientSecret }}>
@@ -290,27 +290,27 @@ export default function Book() {
 function SummaryRow({ label, value, bold, accent }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0' }}>
-      <span style={{ color: '#666', fontSize: 14 }}>{label}</span>
+      <span style={{ color: '#9A938A', fontSize: 14 }}>{label}</span>
       <span style={{ fontWeight: bold ? 700 : 500, color: accent ? '#C8A24B' : '#0E0E10', fontSize: bold ? 16 : 14 }}>{value}</span>
     </div>
   );
 }
 
 const styles = {
-  page: { background: '#F9F7F4', minHeight: 'calc(100vh - 64px)', padding: '40px 16px' },
+  page: { background: '#0E0E10', minHeight: 'calc(100vh - 64px)', padding: '40px 16px' },
   container: { maxWidth: 720, margin: '0 auto' },
   progress: { display: 'flex', justifyContent: 'space-between', marginBottom: 32, position: 'relative' },
   stepWrap: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 },
   stepDot: {
-    width: 36, height: 36, borderRadius: '50%', border: '2px solid #E0DCDA',
-    background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 13, fontWeight: 700, color: '#aaa', transition: 'all 0.2s',
+    width: 36, height: 36, borderRadius: '50%', border: '2px solid #2A2A2A',
+    background: '#16161A', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 13, fontWeight: 700, color: '#9A938A', transition: 'all 0.2s',
   },
   stepDotActive: { background: '#0E0E10', border: '2px solid #0E0E10', color: '#C8A24B' },
-  stepLabel: { fontSize: 11, color: '#aaa', letterSpacing: '0.04em', textAlign: 'center' },
-  stepLabelActive: { color: '#0E0E10', fontWeight: 600 },
-  card: { background: '#fff', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' },
-  stepTitle: { fontFamily: "'Cormorant', serif", fontSize: 26, color: '#0E0E10', marginBottom: 4 },
+  stepLabel: { fontSize: 11, color: '#9A938A', letterSpacing: '0.04em', textAlign: 'center' },
+  stepLabelActive: { color: '#EDE7DB', fontWeight: 600 },
+  card: { background: '#16161A', borderRadius: 16, padding: 32, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' },
+  stepTitle: { fontFamily: "'Cormorant', serif", fontSize: 26, color: '#EDE7DB', marginBottom: 4 },
   navRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 32 },
   nextBtn: {
     padding: '12px 32px', borderRadius: 999, background: '#0E0E10', color: '#C8A24B',
@@ -318,7 +318,7 @@ const styles = {
   },
   backBtn: {
     padding: '12px 24px', borderRadius: 999, background: 'transparent',
-    border: '1px solid #E0DCDA', color: '#666', fontSize: 14, cursor: 'pointer',
+    border: '1px solid #2A2A2A', color: '#9A938A', fontSize: 14, cursor: 'pointer',
     fontFamily: "'Jost', sans-serif",
   },
   confirmBtn: {
@@ -326,12 +326,12 @@ const styles = {
     border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
   },
   noPreference: {
-    background: '#fff', border: '2px solid #E0DCDA', borderRadius: 12,
+    background: '#16161A', border: '2px solid #2A2A2A', borderRadius: 12,
     padding: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-    cursor: 'pointer', transition: 'all 0.2s', fontSize: 14, color: '#444',
+    cursor: 'pointer', transition: 'all 0.2s', fontSize: 14, color: '#9A938A',
   },
   noPreferenceSelected: {
-    border: '2px solid #C8A24B', background: '#FFFDF7',
+    border: '2px solid #C8A24B', background: 'rgba(200,162,75,0.1)',
     boxShadow: '0 4px 16px rgba(201,168,76,0.2)',
   },
   calendarRow: { display: 'flex', gap: 24, marginTop: 20, flexWrap: 'wrap' },
@@ -339,7 +339,7 @@ const styles = {
   slotsWrap: { flex: 1, minWidth: 220 },
   profileInfo: {
     display: 'flex', alignItems: 'center', gap: 16,
-    padding: 16, background: '#F9F7F4', borderRadius: 10, marginBottom: 16,
+    padding: 16, background: '#0E0E10', borderRadius: 10, marginBottom: 16,
   },
   profileAvatar: {
     width: 44, height: 44, borderRadius: '50%',
@@ -347,6 +347,6 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 18, fontWeight: 700,
   },
-  summary: { border: '1px solid #E0DCDA', borderRadius: 10, padding: '8px 20px' },
-  divider: { height: 1, background: '#E0DCDA', margin: '8px 0' },
+  summary: { border: '1px solid #2A2A2A', borderRadius: 10, padding: '8px 20px' },
+  divider: { height: 1, background: '#2A2A2A', margin: '8px 0' },
 };

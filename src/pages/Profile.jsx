@@ -115,10 +115,10 @@ const styles = {
   page: { padding: '48px 0 80px' },
   title: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 32 },
   profileCard: {
-    background: '#fff', borderRadius: 16, padding: 28,
+    background: '#16161A', borderRadius: 16, padding: 28,
     display: 'flex', alignItems: 'flex-start', gap: 24,
     boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 48,
-    border: '1px solid #E0DCDA',
+    border: '1px solid #2A2A2A',
   },
   avatarBig: {
     width: 72, height: 72, borderRadius: '50%',
@@ -127,11 +127,11 @@ const styles = {
     fontSize: 28, fontWeight: 700, flexShrink: 0,
     fontFamily: "'Cormorant', serif",
   },
-  profileName: { fontFamily: "'Cormorant', serif", fontSize: 22, color: '#0E0E10', marginBottom: 4 },
-  profileMeta: { fontSize: 14, color: '#888', marginBottom: 2 },
+  profileName: { fontFamily: "'Cormorant', serif", fontSize: 22, color: '#EDE7DB', marginBottom: 4 },
+  profileMeta: { fontSize: 14, color: '#9A938A', marginBottom: 2 },
   editBtn: {
     marginTop: 12, padding: '7px 18px', borderRadius: 999,
-    background: 'none', border: '1px solid #E0DCDA', fontSize: 13, cursor: 'pointer',
+    background: 'none', border: '1px solid #2A2A2A', fontSize: 13, cursor: 'pointer',
   },
   editForm: { display: 'flex', flexDirection: 'column', gap: 14 },
   saveBtn: {
@@ -140,10 +140,10 @@ const styles = {
   },
   cancelBtn: {
     padding: '8px 20px', borderRadius: 999, background: 'none',
-    border: '1px solid #E0DCDA', fontSize: 13, cursor: 'pointer',
+    border: '1px solid #2A2A2A', fontSize: 13, cursor: 'pointer',
   },
   sectionTitle: { fontFamily: "'Cormorant', serif", fontSize: 24, marginBottom: 20 },
-  empty: { textAlign: 'center', padding: '40px 0', color: '#888' },
+  empty: { textAlign: 'center', padding: '40px 0', color: '#9A938A' },
   bookLink: {
     display: 'inline-block', marginTop: 12, padding: '10px 28px',
     borderRadius: 999, background: '#C8A24B', color: '#0E0E10',

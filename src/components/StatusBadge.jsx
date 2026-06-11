@@ -1,9 +1,9 @@
 const STATUS_STYLES = {
-  pending:   { bg: '#FEF9E7', color: '#7D6608', border: '#F9E79F' },
-  confirmed: { bg: '#D1FAE5', color: '#065F46', border: '#A7F3D0' },
-  cancelled: { bg: '#F3F4F6', color: '#6B7280', border: '#E5E7EB' },
-  completed: { bg: '#EFF6FF', color: '#1E40AF', border: '#BFDBFE' },
-  no_show:   { bg: '#FEE2E2', color: '#991B1B', border: '#FECACA' },
+  pending:   { bg: 'rgba(200,162,75,0.14)', color: '#D8BC7E', border: 'rgba(200,162,75,0.4)' },
+  confirmed: { bg: 'rgba(111,207,151,0.14)', color: '#9ad9b4', border: 'rgba(111,207,151,0.4)' },
+  cancelled: { bg: 'rgba(255,255,255,0.06)', color: '#9A938A', border: '#2A2A2A' },
+  completed: { bg: 'rgba(88,166,255,0.14)', color: '#9ec5ff', border: 'rgba(88,166,255,0.4)' },
+  no_show:   { bg: 'rgba(248,113,113,0.14)', color: '#f8a3a3', border: 'rgba(248,113,113,0.4)' },
 };
 
 export default function StatusBadge({ status }) {

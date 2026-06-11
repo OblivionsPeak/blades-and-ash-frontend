@@ -178,7 +178,7 @@ export default function Admin() {
         {/* Team Tab */}
         {tab === 'team' && (
           <div>
-            <p style={{ fontSize: 14, color: '#666', marginBottom: 20, lineHeight: 1.6, maxWidth: 640 }}>
+            <p style={{ fontSize: 14, color: '#9A938A', marginBottom: 20, lineHeight: 1.6, maxWidth: 640 }}>
               Set each person's role. Promote a stylist to <strong>Staff</strong> so they become bookable and can have availability and services.
               <strong>Admins</strong> can manage everything and are also bookable. As an admin, you already appear in the Availability and Staff &amp; Services tabs.
             </p>
@@ -266,12 +266,12 @@ export default function Admin() {
                           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                             <input type="time" value={row.start_time} className="form-input" style={{ width: 130 }}
                               onChange={e => setAvailability(a => a.map((r, j) => j === i ? { ...r, start_time: e.target.value } : r))} />
-                            <span style={{ color: '#888' }}>to</span>
+                            <span style={{ color: '#9A938A' }}>to</span>
                             <input type="time" value={row.end_time} className="form-input" style={{ width: 130 }}
                               onChange={e => setAvailability(a => a.map((r, j) => j === i ? { ...r, end_time: e.target.value } : r))} />
                           </div>
                         )}
-                        {!row.active && <span style={{ color: '#aaa', fontSize: 13 }}>Day off</span>}
+                        {!row.active && <span style={{ color: '#9A938A', fontSize: 13 }}>Day off</span>}
                       </div>
                     );
                   })}
@@ -328,21 +328,21 @@ const styles = {
   page: { padding: '48px 0 80px' },
   title: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 32 },
   addBtn: { padding: '10px 24px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14 },
-  table: { background: '#fff', borderRadius: 12, border: '1px solid #E0DCDA', overflow: 'hidden' },
+  table: { background: '#16161A', borderRadius: 12, border: '1px solid #2A2A2A', overflow: 'hidden' },
   tableHead: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
-  tableRow: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid #F0EDE9', alignItems: 'center' },
+  tableRow: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
   svcName: { fontWeight: 600, fontSize: 15 },
-  svcDesc: { fontSize: 12, color: '#888', marginTop: 2 },
-  cell: { fontSize: 14, color: '#444' },
+  svcDesc: { fontSize: 12, color: '#9A938A', marginTop: 2 },
+  cell: { fontSize: 14, color: '#9A938A' },
   actions: { display: 'flex', gap: 8 },
-  editBtn: { padding: '5px 14px', borderRadius: 999, background: 'none', border: '1px solid #E0DCDA', fontSize: 12, cursor: 'pointer' },
-  deleteBtn: { padding: '5px 14px', borderRadius: 999, background: 'none', border: '1px solid #FECACA', color: '#C0392B', fontSize: 12, cursor: 'pointer' },
-  staffBlock: { background: '#fff', borderRadius: 12, padding: 24, marginBottom: 16, border: '1px solid #E0DCDA' },
+  editBtn: { padding: '5px 14px', borderRadius: 999, background: 'none', border: '1px solid #2A2A2A', fontSize: 12, cursor: 'pointer' },
+  deleteBtn: { padding: '5px 14px', borderRadius: 999, background: 'none', border: '1px solid rgba(248,113,113,0.4)', color: '#C0392B', fontSize: 12, cursor: 'pointer' },
+  staffBlock: { background: '#16161A', borderRadius: 12, padding: 24, marginBottom: 16, border: '1px solid #2A2A2A' },
   staffName: { fontFamily: "'Cormorant', serif", fontSize: 20, marginBottom: 4 },
-  staffMeta: { fontSize: 13, color: '#888', marginBottom: 16 },
+  staffMeta: { fontSize: 13, color: '#9A938A', marginBottom: 16 },
   serviceChecks: { display: 'flex', flexWrap: 'wrap', gap: 16 },
   checkLabel: { display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, cursor: 'pointer' },
-  dayRow: { display: 'flex', alignItems: 'center', gap: 20, background: '#fff', borderRadius: 8, padding: '12px 16px', border: '1px solid #E0DCDA' },
+  dayRow: { display: 'flex', alignItems: 'center', gap: 20, background: '#16161A', borderRadius: 8, padding: '12px 16px', border: '1px solid #2A2A2A' },
   dayToggle: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minWidth: 140 },
   saveAvailBtn: { padding: '12px 32px', borderRadius: 999, background: '#0E0E10', color: '#C8A24B', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14, fontFamily: "'Jost', sans-serif" },
 };

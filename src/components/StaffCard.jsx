@@ -22,8 +22,8 @@ export default function StaffCard({ staff, selected, onSelect }) {
 
 const styles = {
   card: {
-    background: '#fff', borderRadius: 12,
-    border: '2px solid #E0DCDA',
+    background: '#16161A', borderRadius: 12,
+    border: '2px solid #2A2A2A',
     padding: 20, display: 'flex', alignItems: 'center', gap: 16,
     transition: 'all 0.2s',
     boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
@@ -31,7 +31,7 @@ const styles = {
   cardSelected: {
     border: '2px solid #C8A24B',
     boxShadow: '0 4px 16px rgba(201,168,76,0.2)',
-    background: '#FFFDF7',
+    background: 'rgba(200,162,75,0.1)',
   },
   avatar: {
     width: 52, height: 52, borderRadius: '50%',
@@ -40,6 +40,6 @@ const styles = {
     fontFamily: "'Cormorant', serif", fontSize: 18, fontWeight: 700,
     flexShrink: 0,
   },
-  name: { fontFamily: "'Cormorant', serif", fontSize: 16, color: '#0E0E10' },
-  role: { fontSize: 13, color: '#888', marginTop: 2 },
+  name: { fontFamily: "'Cormorant', serif", fontSize: 16, color: '#EDE7DB' },
+  role: { fontSize: 13, color: '#9A938A', marginTop: 2 },
 };

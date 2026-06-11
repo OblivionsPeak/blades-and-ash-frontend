@@ -49,8 +49,8 @@ export default function AppointmentCard({ appointment, onCancel, showStaff }) {
 
 const styles = {
   card: {
-    background: '#fff', borderRadius: 12,
-    border: '1px solid #E0DCDA', display: 'flex',
+    background: '#16161A', borderRadius: 12,
+    border: '1px solid #2A2A2A', display: 'flex',
     overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
   },
   dateStrip: {
@@ -60,17 +60,17 @@ const styles = {
   },
   day: { fontSize: 11, letterSpacing: '0.06em', color: '#C8A24B', textTransform: 'uppercase' },
   date: { fontSize: 28, fontWeight: 700, fontFamily: "'Cormorant', serif", lineHeight: 1 },
-  month: { fontSize: 11, letterSpacing: '0.06em', color: '#888', textTransform: 'uppercase' },
+  month: { fontSize: 11, letterSpacing: '0.06em', color: '#9A938A', textTransform: 'uppercase' },
   details: { flex: 1, padding: 16 },
   top: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
-  service: { fontFamily: "'Cormorant', serif", fontSize: 16, color: '#0E0E10', fontWeight: 600 },
-  meta: { fontSize: 13, color: '#888', marginTop: 3 },
+  service: { fontFamily: "'Cormorant', serif", fontSize: 16, color: '#EDE7DB', fontWeight: 600 },
+  meta: { fontSize: 13, color: '#9A938A', marginTop: 3 },
   right: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
-  price: { fontSize: 16, fontWeight: 700, color: '#0E0E10' },
-  notes: { fontSize: 13, color: '#666', fontStyle: 'italic', marginTop: 8 },
+  price: { fontSize: 16, fontWeight: 700, color: '#EDE7DB' },
+  notes: { fontSize: 13, color: '#9A938A', fontStyle: 'italic', marginTop: 8 },
   cancelBtn: {
     marginTop: 12, padding: '6px 16px', borderRadius: 999,
-    background: 'none', border: '1px solid #E0DCDA', color: '#C0392B',
+    background: 'none', border: '1px solid #2A2A2A', color: '#C0392B',
     fontSize: 13, fontWeight: 500, cursor: 'pointer',
   },
 };

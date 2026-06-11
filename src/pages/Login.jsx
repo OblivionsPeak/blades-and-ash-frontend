@@ -105,16 +105,16 @@ const styles = {
   page: {
     minHeight: 'calc(100vh - 64px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: 24, background: '#F9F7F4',
+    padding: 24, background: '#0E0E10',
   },
   card: {
-    background: '#fff', borderRadius: 16,
+    background: '#16161A', borderRadius: 16,
     padding: 40, width: '100%', maxWidth: 420,
     boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
   },
   logoRow: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32, justifyContent: 'center' },
   scissor: { color: '#C8A24B', fontSize: 22 },
-  brand: { fontFamily: "'Cormorant', serif", fontSize: 18, letterSpacing: '0.08em', color: '#0E0E10' },
+  brand: { fontFamily: "'Cormorant', serif", fontSize: 18, letterSpacing: '0.08em', color: '#EDE7DB' },
   form: { display: 'flex', flexDirection: 'column', gap: 18 },
   submitBtn: {
     marginTop: 8, padding: '14px', borderRadius: 999,

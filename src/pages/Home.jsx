@@ -110,8 +110,8 @@ const styles = {
   sectionHead: { textAlign: 'center', marginBottom: 48 },
   sectionLabel: { fontSize: 12, fontWeight: 600, letterSpacing: '0.14em', color: '#C8A24B' },
   sectionTitle: { fontFamily: "'Cormorant', serif", fontSize: 40, marginTop: 8 },
-  empty: { textAlign: 'center', color: '#888', padding: '40px 0' },
-  ctaStrip: { background: '#F9F7F4', padding: '80px 0', borderTop: '1px solid #E0DCDA' },
+  empty: { textAlign: 'center', color: '#9A938A', padding: '40px 0' },
+  ctaStrip: { background: '#0E0E10', padding: '80px 0', borderTop: '1px solid #2A2A2A' },
   ctaTitle: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 12 },
-  ctaSub: { color: '#666', fontSize: 16, marginBottom: 32 },
+  ctaSub: { color: '#9A938A', fontSize: 16, marginBottom: 32 },
 };

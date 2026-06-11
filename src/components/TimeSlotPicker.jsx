@@ -2,7 +2,7 @@ import { format, parseISO } from 'date-fns';
 
 export default function TimeSlotPicker({ slots, selected, onSelect }) {
   if (!slots || slots.length === 0) {
-    return <p style={{ color: '#888', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>No available times for this date.</p>;
+    return <p style={{ color: '#9A938A', fontSize: 14, textAlign: 'center', padding: '20px 0' }}>No available times for this date.</p>;
   }
 
   return (
@@ -29,8 +29,8 @@ const styles = {
   grid: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 },
   slot: {
     padding: '10px 4px', borderRadius: 8,
-    border: '1.5px solid #E0DCDA',
-    background: '#fff', color: '#0E0E10',
+    border: '1.5px solid #2A2A2A',
+    background: '#16161A', color: '#EDE7DB',
     fontSize: 13, fontWeight: 500, cursor: 'pointer',
     fontFamily: "'Jost', sans-serif",
     transition: 'all 0.15s',
