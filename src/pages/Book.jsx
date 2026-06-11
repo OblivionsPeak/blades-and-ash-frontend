@@ -15,7 +15,17 @@ import PaymentForm from '../components/PaymentForm';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
-const STEPS = ['Service', 'Stylist', 'Date & Time', 'Details', 'Confirm'];
+const STEP_LABELS = {
+  service: 'Service',
+  stylist: 'Stylist',
+  datetime: 'Date & Time',
+  details: 'Details',
+  confirm: 'Confirm',
+};
+
+// Display order for service category groups on the first step. Unknown
+// categories slot in before 'Other'; uncategorized services land in 'Other'.
+const CATEGORY_ORDER = ['Haircuts', 'Color', 'Perms', 'Extensions', 'Treatments & Styling', 'Waxing', 'Add-Ons', 'Other'];
 
 const CANCELLATION_POLICY = 'Cancellations within 48 hours of your appointment are charged 50% of the service. No-shows are charged 100% of the service.';
 
@@ -61,8 +71,32 @@ export default function Book() {
 
   useEffect(() => {
     api.getServices().then(setServices).catch(() => {});
-    api.getStaff().then(setStaff).catch(() => {});
+    api.getStaff().then(data => {
+      setStaff(data);
+      // Solo-stylist mode: pre-select the only stylist so the summary shows
+      // her name and the Stylist step can be skipped entirely.
+      if (data.length === 1) setSelectedStaff(data[0]);
+    }).catch(() => {});
   }, []);
+
+  // With a single stylist there's nothing to choose — hide the step. It comes
+  // back automatically as soon as a second staff member exists.
+  const hideStylistStep = staff.length <= 1;
+  const stepKeys = hideStylistStep
+    ? ['service', 'datetime', 'details', 'confirm']
+    : ['service', 'stylist', 'datetime', 'details', 'confirm'];
+  const currentStep = stepKeys[step];
+
+  // Group services by category for the first step. If no service has a
+  // category yet (migration not run), fall back to a single flat list.
+  const knownCats = new Set(CATEGORY_ORDER);
+  const extraCats = [...new Set(services.map(s => s.category).filter(c => c && !knownCats.has(c)))].sort();
+  const orderedCats = [...CATEGORY_ORDER.slice(0, -1), ...extraCats, 'Other'];
+  const serviceGroups = services.some(s => s.category)
+    ? orderedCats
+        .map(cat => ({ category: cat, items: services.filter(s => (s.category || 'Other') === cat) }))
+        .filter(g => g.items.length > 0)
+    : [{ category: null, items: services }];
 
   useEffect(() => {
     if (!selectedDate || selectedServices.length === 0) return;
@@ -198,13 +232,13 @@ export default function Book() {
       <div style={styles.container}>
         {/* Progress bar */}
         <div className="book-progress" style={styles.progress}>
-          {STEPS.map((label, i) => (
-            <div key={label} style={styles.stepWrap}>
+          {stepKeys.map((key, i) => (
+            <div key={key} style={styles.stepWrap}>
               <div style={{ ...styles.stepDot, ...(i <= step ? styles.stepDotActive : {}) }}>
                 {i < step ? '✓' : i + 1}
               </div>
               <span className="book-step-label" style={{ ...styles.stepLabel, ...(i === step ? styles.stepLabelActive : {}) }}>
-                {label}
+                {STEP_LABELS[key]}
               </span>
             </div>
           ))}
@@ -213,17 +247,22 @@ export default function Book() {
         <div className="book-card" style={styles.card}>
           {err && <div className="alert alert-error" style={{ marginBottom: 16 }}>{err}</div>}
 
-          {/* Step 0: Service */}
-          {step === 0 && (
+          {/* Step: Service */}
+          {currentStep === 'service' && (
             <div>
               <h2 style={styles.stepTitle}>Choose Your Services</h2>
               <p style={{ color: '#9A938A', fontSize: 14, marginTop: 2 }}>Select one or more — they'll be booked in a single appointment.</p>
-              <div className="grid-2" style={{ marginTop: 20 }}>
-                {services.map(s => (
-                  <ServiceCard key={s.id} service={s} selected={selectedServices.some(x => x.id === s.id)}
-                    onSelect={toggleService} />
-                ))}
-              </div>
+              {serviceGroups.map(group => (
+                <div key={group.category || 'all'}>
+                  {group.category && <h3 style={styles.categoryHeader}>{group.category}</h3>}
+                  <div className="grid-2" style={{ marginTop: group.category ? 12 : 20 }}>
+                    {group.items.map(s => (
+                      <ServiceCard key={s.id} service={s} selected={selectedServices.some(x => x.id === s.id)}
+                        onSelect={toggleService} />
+                    ))}
+                  </div>
+                </div>
+              ))}
               {selectedServices.length > 0 && (
                 <div style={styles.selSummary}>
                   <span style={styles.selCount}>
@@ -245,8 +284,8 @@ export default function Book() {
             </div>
           )}
 
-          {/* Step 1: Stylist */}
-          {step === 1 && (
+          {/* Step: Stylist (hidden in solo-stylist mode) */}
+          {currentStep === 'stylist' && (
             <div>
               <h2 style={styles.stepTitle}>Choose a Stylist</h2>
               <div className="grid-2" style={{ marginTop: 20 }}>
@@ -269,8 +308,8 @@ export default function Book() {
             </div>
           )}
 
-          {/* Step 2: Date & Time */}
-          {step === 2 && (
+          {/* Step: Date & Time */}
+          {currentStep === 'datetime' && (
             <div>
               <h2 style={styles.stepTitle}>Pick a Date & Time</h2>
               <div className="book-calendar-row" style={styles.calendarRow}>
@@ -302,8 +341,8 @@ export default function Book() {
             </div>
           )}
 
-          {/* Step 3: Details */}
-          {step === 3 && (
+          {/* Step: Details */}
+          {currentStep === 'details' && (
             <div>
               <h2 style={styles.stepTitle}>Your Details</h2>
               {user ? (
@@ -349,8 +388,8 @@ export default function Book() {
             </div>
           )}
 
-          {/* Step 4: Confirm */}
-          {step === 4 && !clientSecret && !confirmed && (
+          {/* Step: Confirm */}
+          {currentStep === 'confirm' && !clientSecret && !confirmed && (
             <div>
               <h2 style={styles.stepTitle}>Review & Confirm</h2>
               <div style={styles.summary}>
@@ -553,6 +592,11 @@ const styles = {
     background: '#0E0E10', color: '#C8A24B',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 18, fontWeight: 700,
+  },
+  categoryHeader: {
+    fontFamily: "'Cormorant', serif", fontSize: 20, color: '#D8BC7E',
+    margin: '28px 0 0', fontWeight: 600, borderBottom: '1px solid #2A2A2A',
+    paddingBottom: 8,
   },
   selSummary: {
     marginTop: 20, padding: '14px 18px', background: '#1E1E22', border: '1px solid #2A2A2A',
