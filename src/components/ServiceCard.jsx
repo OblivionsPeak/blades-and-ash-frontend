@@ -10,7 +10,10 @@ export default function ServiceCard({ service, selected, onSelect }) {
     >
       <div style={styles.top}>
         <h3 style={styles.name}>{service.name}</h3>
-        <span style={styles.price}>${(service.price_cents / 100).toFixed(0)}</span>
+        <div style={styles.topRight}>
+          {selected && <span style={styles.check}>✓</span>}
+          <span style={styles.price}>${(service.price_cents / 100).toFixed(0)}</span>
+        </div>
       </div>
       {service.description && <p style={styles.desc}>{service.description}</p>}
       <div style={styles.meta}>
@@ -36,8 +39,14 @@ const styles = {
     background: 'rgba(200,162,75,0.1)',
   },
   top: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
+  topRight: { display: 'flex', alignItems: 'center', gap: 8 },
   name: { fontFamily: "'Cormorant', serif", fontSize: 17, color: '#EDE7DB' },
   price: { fontSize: 20, fontWeight: 700, color: '#C8A24B' },
+  check: {
+    width: 22, height: 22, borderRadius: '50%', background: '#C8A24B', color: '#0E0E10',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
+    flexShrink: 0,
+  },
   desc: { fontSize: 14, color: '#9A938A', marginBottom: 12, lineHeight: 1.5 },
   meta: { display: 'flex', gap: 8, flexWrap: 'wrap' },
   pill: {

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
+import { apptItems } from '../utils';
 
 export default function Confirm() {
   const { id } = useParams();
@@ -29,10 +30,15 @@ export default function Confirm() {
 
         {appointment && (
           <div style={styles.summary}>
-            <Row label="Service" value={appointment.service?.name || '—'} />
+            {apptItems(appointment).map((it, i) => (
+              <Row key={it.service_id || i} label={i === 0 ? 'Service' : ''} value={it.name} />
+            ))}
             <Row label="Stylist" value={appointment.staff?.full_name || '—'} />
             <Row label="Date" value={appointment.start_time ? format(new Date(appointment.start_time), 'EEEE, MMMM d, yyyy') : '—'} />
             <Row label="Time" value={appointment.start_time ? format(new Date(appointment.start_time), 'h:mm a') : '—'} />
+            {appointment.total_cents != null && (
+              <Row label="Total" value={`$${(appointment.total_cents / 100).toFixed(2)}`} />
+            )}
             <Row label="Status" value={appointment.status || 'confirmed'} />
           </div>
         )}

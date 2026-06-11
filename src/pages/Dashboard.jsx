@@ -7,6 +7,7 @@ import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
+import { apptItems, apptServiceNames } from '../utils';
 
 const STATUS_OPTIONS = ['pending', 'confirmed', 'completed', 'no_show', 'cancelled'];
 
@@ -115,7 +116,7 @@ export default function Dashboard() {
                     {format(new Date(a.start_time), 'h:mm a')}
                     <span style={{ color: '#9A938A' }}> → {format(new Date(a.end_time), 'h:mm a')}</span>
                   </div>
-                  <div style={styles.apptService}>{a.service?.name || 'Service'}</div>
+                  <div style={styles.apptService}>{apptServiceNames(a)}</div>
                   <div style={styles.apptClient}>{a.client?.full_name || 'Client'}</div>
                   {isAdmin && a.staff && (
                     <div style={{ fontSize: 12, color: '#9A938A', marginTop: 2 }}>with {a.staff.full_name}</div>
@@ -135,7 +136,7 @@ export default function Dashboard() {
         {selectedAppt && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Row label="Client" value={selectedAppt.client?.full_name || '—'} />
-            <Row label="Service" value={selectedAppt.service?.name || '—'} />
+            <Row label={apptItems(selectedAppt).length > 1 ? 'Services' : 'Service'} value={apptServiceNames(selectedAppt)} />
             {isAdmin && <Row label="Stylist" value={selectedAppt.staff?.full_name || '—'} />}
             <Row label="Date & Time" value={`${format(new Date(selectedAppt.start_time), 'MMMM d')} • ${format(new Date(selectedAppt.start_time), 'h:mm a')} – ${format(new Date(selectedAppt.end_time), 'h:mm a')}`} />
             <Row label="Total" value={`$${(selectedAppt.total_cents / 100).toFixed(2)}`} />

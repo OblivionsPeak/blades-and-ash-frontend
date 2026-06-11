@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import StatusBadge from './StatusBadge';
+import { apptServiceNames } from '../utils';
 
 export default function AppointmentCard({ appointment, onCancel, showStaff }) {
   const start = new Date(appointment.start_time);
@@ -17,7 +18,7 @@ export default function AppointmentCard({ appointment, onCancel, showStaff }) {
       <div style={styles.details}>
         <div style={styles.top}>
           <div>
-            <div style={styles.service}>{appointment.service?.name || 'Service'}</div>
+            <div style={styles.service}>{apptServiceNames(appointment)}</div>
             {showStaff && appointment.staff && (
               <div style={styles.meta}>with {appointment.staff.full_name}</div>
             )}

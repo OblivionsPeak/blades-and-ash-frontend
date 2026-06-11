@@ -28,7 +28,7 @@ export default function Book() {
   const [slots, setSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
 
-  const [selectedService, setSelectedService] = useState(null);
+  const [selectedServices, setSelectedServices] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -50,21 +50,36 @@ export default function Book() {
   const [promoErr, setPromoErr] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
 
+  // Summed totals across all selected services.
+  const totalCents = selectedServices.reduce((sum, s) => sum + (s.price_cents || 0), 0);
+  const totalMinutes = selectedServices.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
+  const depositRequired = selectedServices.some(s => s.deposit_required);
+  const depositCents = selectedServices.reduce((sum, s) => sum + (s.deposit_required ? (s.deposit_cents || 0) : 0), 0);
+  const serviceIds = selectedServices.map(s => s.id);
+
   useEffect(() => {
     api.getServices().then(setServices).catch(() => {});
     api.getStaff().then(setStaff).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!selectedDate || !selectedService) return;
+    if (!selectedDate || selectedServices.length === 0) return;
     setSlotsLoading(true);
     const staffId = selectedStaff?.id || staff[0]?.id;
     if (!staffId) { setSlotsLoading(false); return; }
-    api.getAvailability({ staff_id: staffId, service_id: selectedService.id, date: format(selectedDate, 'yyyy-MM-dd') })
+    api.getAvailability({ staff_id: staffId, service_ids: selectedServices.map(s => s.id).join(','), date: format(selectedDate, 'yyyy-MM-dd') })
       .then(data => setSlots(data.slots || []))
       .catch(() => setSlots([]))
       .finally(() => setSlotsLoading(false));
-  }, [selectedDate, selectedService, selectedStaff]);
+  }, [selectedDate, selectedServices, selectedStaff]);
+
+  function toggleService(svc) {
+    setSelectedServices(prev =>
+      prev.some(s => s.id === svc.id) ? prev.filter(s => s.id !== svc.id) : [...prev, svc]
+    );
+    setSelectedSlot(null);
+    clearPromo();
+  }
 
   function next() { setErr(''); setStep(s => s + 1); }
   function back() { setErr(''); setStep(s => s - 1); }
@@ -75,7 +90,7 @@ export default function Book() {
     const token = session?.access_token;
     setPromoLoading(true); setPromoErr('');
     try {
-      const res = await api.validateDiscount({ code, service_id: selectedService.id }, token);
+      const res = await api.validateDiscount({ code, service_ids: serviceIds }, token);
       if (res.valid) {
         setPromoApplied(res);
         setPromoErr('');
@@ -105,7 +120,7 @@ export default function Book() {
     try {
       const result = await api.createAppointment({
         staff_id: selectedStaff?.id || staff[0]?.id,
-        service_id: selectedService.id,
+        service_ids: serviceIds,
         start_time: selectedSlot,
         client_notes: clientNotes,
         ...(promoApplied ? { discount_code: promoApplied.code } : {}),
@@ -129,9 +144,7 @@ export default function Book() {
     navigate(`/confirm/${booking.id}`);
   }
 
-  const staffForService = selectedService
-    ? staff.filter(s => true) // backend filters; show all for now
-    : staff;
+  const staffForService = staff; // backend filters; show all for now
 
   return (
     <div style={styles.page}>
@@ -156,18 +169,30 @@ export default function Book() {
           {/* Step 0: Service */}
           {step === 0 && (
             <div>
-              <h2 style={styles.stepTitle}>Choose a Service</h2>
+              <h2 style={styles.stepTitle}>Choose Your Services</h2>
+              <p style={{ color: '#9A938A', fontSize: 14, marginTop: 2 }}>Select one or more — they'll be booked in a single appointment.</p>
               <div className="grid-2" style={{ marginTop: 20 }}>
                 {services.map(s => (
-                  <ServiceCard key={s.id} service={s} selected={selectedService?.id === s.id}
-                    onSelect={svc => { setSelectedService(svc); setSelectedStaff(null); setSelectedSlot(null); clearPromo(); }} />
+                  <ServiceCard key={s.id} service={s} selected={selectedServices.some(x => x.id === s.id)}
+                    onSelect={toggleService} />
                 ))}
               </div>
+              {selectedServices.length > 0 && (
+                <div style={styles.selSummary}>
+                  <span style={styles.selCount}>
+                    {selectedServices.length} service{selectedServices.length !== 1 ? 's' : ''}
+                  </span>
+                  <span style={styles.selDot}>·</span>
+                  <span style={styles.selTotal}>${(totalCents / 100).toFixed(2)}</span>
+                  <span style={styles.selDot}>·</span>
+                  <span style={styles.selDuration}>~{formatDuration(totalMinutes)}</span>
+                </div>
+              )}
               <div style={styles.navRow}>
                 <span />
                 <button
-                  onClick={next} disabled={!selectedService}
-                  style={{ ...styles.nextBtn, opacity: selectedService ? 1 : 0.4 }}
+                  onClick={next} disabled={selectedServices.length === 0}
+                  style={{ ...styles.nextBtn, opacity: selectedServices.length > 0 ? 1 : 0.4 }}
                 >Next →</button>
               </div>
             </div>
@@ -282,10 +307,14 @@ export default function Book() {
             <div>
               <h2 style={styles.stepTitle}>Review & Confirm</h2>
               <div style={styles.summary}>
-                <SummaryRow label="Service" value={selectedService?.name} />
+                {selectedServices.map(s => (
+                  <SummaryRow key={s.id} label={s.name} value={`$${(s.price_cents / 100).toFixed(2)}`} />
+                ))}
+                <div style={styles.divider} />
                 <SummaryRow label="Stylist" value={selectedStaff?.full_name || 'First available'} />
                 <SummaryRow label="Date" value={selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : ''} />
                 <SummaryRow label="Time" value={selectedSlot ? format(new Date(selectedSlot), 'h:mm a') : ''} />
+                <SummaryRow label="Duration" value={`~${formatDuration(totalMinutes)}`} />
                 <div style={styles.divider} />
                 {promoApplied ? (
                   <>
@@ -294,13 +323,13 @@ export default function Book() {
                     <SummaryRow label="Total" value={`$${(promoApplied.discounted_cents / 100).toFixed(2)}`} bold />
                   </>
                 ) : (
-                  <SummaryRow label="Total" value={`$${(selectedService?.price_cents / 100).toFixed(2)}`} bold />
+                  <SummaryRow label="Total" value={`$${(totalCents / 100).toFixed(2)}`} bold />
                 )}
-                {selectedService?.deposit_required && (
-                  <SummaryRow label="Due now (deposit)" value={`$${(selectedService.deposit_cents / 100).toFixed(2)}`} bold accent />
+                {depositRequired && (
+                  <SummaryRow label="Due now (deposit)" value={`$${(depositCents / 100).toFixed(2)}`} bold accent />
                 )}
-                {!selectedService?.deposit_required && (
-                  <SummaryRow label="Due at salon" value={`$${((promoApplied ? promoApplied.discounted_cents : selectedService?.price_cents) / 100).toFixed(2)}`} />
+                {!depositRequired && (
+                  <SummaryRow label="Due at salon" value={`$${((promoApplied ? promoApplied.discounted_cents : totalCents) / 100).toFixed(2)}`} />
                 )}
               </div>
 
@@ -341,7 +370,7 @@ export default function Book() {
               <div style={styles.navRow}>
                 <button onClick={back} style={styles.backBtn}>← Back</button>
                 <button onClick={confirmBooking} disabled={loading || !user || !agreedPolicy} style={{ ...styles.confirmBtn, opacity: (loading || !user || !agreedPolicy) ? 0.4 : 1, cursor: (!user || !agreedPolicy) ? 'not-allowed' : 'pointer' }}>
-                  {loading ? 'Booking…' : selectedService?.deposit_required ? 'Continue to Payment' : 'Confirm Booking'}
+                  {loading ? 'Booking…' : depositRequired ? 'Continue to Payment' : 'Confirm Booking'}
                 </button>
               </div>
               {!user && <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#9A938A' }}>You must <a href="/login" style={{ color: '#C8A24B' }}>sign in</a> to complete your booking.</p>}
@@ -357,7 +386,7 @@ export default function Book() {
               </p>
               <Elements stripe={stripePromise} options={{ clientSecret }}>
                 <PaymentForm
-                  amount={selectedService?.deposit_cents}
+                  amount={depositCents}
                   onSuccess={onPaymentSuccess}
                   onError={msg => setErr(msg)}
                 />
@@ -382,6 +411,15 @@ function SummaryRow({ label, value, bold, accent, strike }) {
       }}>{value}</span>
     </div>
   );
+}
+
+function formatDuration(minutes) {
+  if (!minutes) return '0m';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
 }
 
 const styles = {
@@ -435,6 +473,14 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontSize: 18, fontWeight: 700,
   },
+  selSummary: {
+    marginTop: 20, padding: '14px 18px', background: '#1E1E22', border: '1px solid #2A2A2A',
+    borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+  },
+  selCount: { fontSize: 14, fontWeight: 600, color: '#EDE7DB' },
+  selDot: { color: '#9A938A' },
+  selTotal: { fontSize: 15, fontWeight: 700, color: '#C8A24B' },
+  selDuration: { fontSize: 14, color: '#9A938A' },
   summary: { border: '1px solid #2A2A2A', borderRadius: 10, padding: '8px 20px' },
   divider: { height: 1, background: '#2A2A2A', margin: '8px 0' },
   applyBtn: {
