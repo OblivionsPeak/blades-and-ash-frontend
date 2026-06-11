@@ -588,16 +588,16 @@ const LAYOUTS = {
 
     // price — big gold
     rule(ctx, cx, y, w*0.10, ac.color, 1.5);
-    y += h*0.06;
+    y += h*0.045;
     ctx.fillStyle = ac.color;
     const price = fitText(ctx, d.price || ' ', {
-      maxWidth: w*0.6, maxHeight: h*0.12, family: 'Cormorant', weight: 600,
-      max: w*0.13, min: w*0.06, lh: 1.0,
+      maxWidth: w*0.6, maxHeight: h*0.09, family: 'Cormorant', weight: 600,
+      max: w*0.105, min: w*0.055, lh: 1.0,
     });
     setFont(ctx, price.size, 'Cormorant', 600);
     ctx.textAlign = 'center';
     ctx.fillText(price.lines[0], cx, y + price.size*0.8);
-    y += price.size + h*0.04;
+    y += price.size + h*0.03;
 
     // sub line
     ctx.fillStyle = C.muted;
@@ -607,9 +607,9 @@ const LAYOUTS = {
     });
     setFont(ctx, sub.size, 'Cormorant', 400, 'italic');
     drawLines(ctx, sub.lines, cx, y, sub.size*1.25, 'center');
-    y += sub.lines.length * sub.size*1.25 + h*0.05;
+    y += sub.lines.length * sub.size*1.25 + h*0.04;
 
-    drawCTA(ctx, w, h, d.cta, ac, h*0.74);
+    drawCTA(ctx, w, h, d.cta, ac, ctaY(y, h, 0.74));
   },
 
   beforeafter(ctx, w, h, d, ac) {
@@ -705,7 +705,7 @@ const LAYOUTS = {
       y += fp.lines.length*fp.size*1.35 + h*0.03;
     }
 
-    drawCTA(ctx, w, h, d.cta, ac, h*0.74);
+    drawCTA(ctx, w, h, d.cta, ac, ctaY(y, h, 0.74));
   },
 
   membership(ctx, w, h, d, ac) {
@@ -757,7 +757,7 @@ const LAYOUTS = {
       y += perkSize*1.7;
     }
     y += h*0.02;
-    drawCTA(ctx, w, h, d.cta, ac, h*0.76);
+    drawCTA(ctx, w, h, d.cta, ac, ctaY(y, h, 0.76));
   },
 
   booking(ctx, w, h, d, ac) {
@@ -788,7 +788,7 @@ const LAYOUTS = {
       y += slotSize*1.55;
     }
     y += h*0.03;
-    drawCTA(ctx, w, h, d.cta, ac, h*0.78);
+    drawCTA(ctx, w, h, d.cta, ac, ctaY(y, h, 0.78));
   },
 
   newservice(ctx, w, h, d, ac) {
@@ -818,7 +818,7 @@ const LAYOUTS = {
       drawLines(ctx, desc.lines, cx, y, desc.size*1.3, 'center');
       y += desc.lines.length*desc.size*1.3 + h*0.04;
     }
-    drawCTA(ctx, w, h, d.cta, ac, h*0.76);
+    drawCTA(ctx, w, h, d.cta, ac, ctaY(y, h, 0.76));
   },
 
   quote(ctx, w, h, d, ac) {
@@ -931,6 +931,12 @@ function paintPhotoCell(ctx, d, key, x, y, cw, ch, label, ac) {
 }
 
 /* CTA pill near the bottom (above footer) */
+// CTA pill Y: sit below the running content (so it never overlaps), but no
+// higher than its design floor and no lower than just above the footer.
+function ctaY(contentY, h, floorFrac) {
+  return Math.min(Math.max(contentY, h*floorFrac), h*0.84);
+}
+
 function drawCTA(ctx, w, h, text, ac, yFrac) {
   if (!text) return;
   const cx = w/2;
