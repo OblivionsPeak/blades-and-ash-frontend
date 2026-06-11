@@ -5,9 +5,9 @@
 // While a value is still the placeholder, that plan's button shows "Coming soon"
 // and is disabled rather than linking to a broken URL.
 const PAYMENT_LINKS = {
-  iron: 'REPLACE_WITH_STRIPE_PAYMENT_LINK',
-  forge: 'REPLACE_WITH_STRIPE_PAYMENT_LINK',
-  ash: 'REPLACE_WITH_STRIPE_PAYMENT_LINK',
+  iron: 'https://buy.stripe.com/8x214n8eMbQ88BDa8r3F600',
+  forge: 'https://buy.stripe.com/bJe28r3Yw8DWbNPgwP3F601',
+  ash: 'https://buy.stripe.com/28EdR9cv207q6tvgwP3F602',
 };
 
 const PLANS = [
