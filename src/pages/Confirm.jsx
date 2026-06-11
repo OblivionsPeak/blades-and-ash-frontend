@@ -23,7 +23,7 @@ export default function Confirm() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.card}>
+      <div className="confirm-card" style={styles.card}>
         <div style={styles.icon}>✓</div>
         <h1 style={styles.title}>You're booked!</h1>
         <p style={styles.sub}>Your appointment has been confirmed. We'll send you a reminder before your visit.</p>

@@ -53,7 +53,7 @@ export default function Profile() {
         {msg && <div className="alert alert-success" style={{ marginBottom: 16 }}>{msg}</div>}
 
         {/* Profile card */}
-        <div style={styles.profileCard}>
+        <div className="profile-card" style={styles.profileCard}>
           <div style={styles.avatarBig}>{profile?.full_name?.[0] || '?'}</div>
           <div style={{ flex: 1 }}>
             {editing ? (

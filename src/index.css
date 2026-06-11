@@ -193,3 +193,38 @@ input, textarea, select { color: var(--text); }
   .section { padding: 48px 0; }
   .container { padding: 0 16px; }
 }
+
+/* ── Phone-width (≤640px) layout fixes ─────────────────────────────── */
+@media (max-width: 640px) {
+  /* Tab bars (Admin) scroll horizontally rather than wrapping/overflowing */
+  .tab-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+  .tab-btn { white-space: nowrap; flex: 0 0 auto; }
+
+  /* Booking flow */
+  .book-card { padding: 20px !important; border-radius: 12px !important; }
+  .book-progress { gap: 2px; }
+  .book-step-label { display: none; }            /* keep just the numbered dots */
+  .book-calendar-row { flex-direction: column; gap: 16px !important; }
+  .book-calendar-wrap { min-width: 0 !important; width: 100%; }
+
+  /* Admin tables: let the grid scroll horizontally instead of squishing */
+  .admin-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .admin-table-inner { min-width: 560px; }
+  .admin-disc-inner { min-width: 680px; }
+
+  /* Admin availability rows stack their time inputs */
+  .admin-day-row { flex-wrap: wrap; gap: 12px !important; }
+
+  /* Dashboard: stack sidebar above the day view */
+  .dash-layout { flex-direction: column; gap: 20px !important; }
+  .dash-sidebar { flex: 1 1 auto !important; width: 100%; }
+  .dash-stats-inner { gap: 20px !important; flex-wrap: wrap; }
+
+  /* Confirmation + profile cards: reduce padding, stack profile header */
+  .confirm-card { padding: 32px 24px !important; }
+  .profile-card { flex-direction: column; gap: 16px !important; padding: 20px !important; }
+}

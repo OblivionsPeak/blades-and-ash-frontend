@@ -323,12 +323,12 @@ export default function Admin() {
               <button onClick={() => { setImportText(''); setImportModal(true); }} style={styles.importBtn}>⇪ Bulk Import</button>
               <button onClick={openNewSvc} style={styles.addBtn}>+ Add Service</button>
             </div>
-            <div style={styles.table}>
-              <div style={styles.tableHead}>
+            <div className="admin-table-scroll" style={styles.table}>
+              <div className="admin-table-inner" style={styles.tableHead}>
                 <span>Service</span><span>Duration</span><span>Price</span><span>Deposit</span><span>Actions</span>
               </div>
               {services.map(s => (
-                <div key={s.id} style={styles.tableRow}>
+                <div key={s.id} className="admin-table-inner" style={styles.tableRow}>
                   <div>
                     <div style={styles.svcName}>{s.name}</div>
                     {s.description && <div style={styles.svcDesc}>{s.description}</div>}
@@ -426,7 +426,7 @@ export default function Admin() {
                   {DAYS.map((day, i) => {
                     const row = availability[i];
                     return (
-                      <div key={i} style={styles.dayRow}>
+                      <div key={i} className="admin-day-row" style={styles.dayRow}>
                         <label style={styles.dayToggle}>
                           <input type="checkbox" checked={row.active}
                             onChange={() => setAvailability(a => a.map((r, j) => j === i ? { ...r, active: !r.active } : r))}
@@ -462,12 +462,12 @@ export default function Admin() {
             {discounts.length === 0 ? (
               <p style={{ fontSize: 14, color: '#9A938A' }}>No discount codes yet. Add one to offer a promo at checkout.</p>
             ) : (
-              <div style={styles.table}>
-                <div style={styles.discHead}>
+              <div className="admin-table-scroll" style={styles.table}>
+                <div className="admin-disc-inner" style={styles.discHead}>
                   <span>Code</span><span>Discount</span><span>Scope</span><span>Expires</span><span>Status</span><span>Actions</span>
                 </div>
                 {discounts.map(d => (
-                  <div key={d.id} style={styles.discRow}>
+                  <div key={d.id} className="admin-disc-inner" style={styles.discRow}>
                     <span style={styles.svcName}>{d.code}</span>
                     <span style={styles.cell}>{fmtDiscValue(d)}</span>
                     <span style={styles.cell}>{d.scope === 'all' || !d.scope ? 'All services' : d.scope}</span>

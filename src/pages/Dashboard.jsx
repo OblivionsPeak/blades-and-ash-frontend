@@ -63,7 +63,7 @@ export default function Dashboard() {
       {/* Stats bar */}
       {stats && (
         <div style={styles.statsBar}>
-          <div className="container" style={styles.statsInner}>
+          <div className="container dash-stats-inner" style={styles.statsInner}>
             <StatPill label="Today" value={stats.today_count} />
             <StatPill label="Upcoming" value={stats.upcoming_count} />
             <StatPill label="Clients" value={stats.client_count} />
@@ -72,9 +72,9 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="container" style={styles.layout}>
+      <div className="container dash-layout" style={styles.layout}>
         {/* Sidebar */}
-        <div style={styles.sidebar}>
+        <div className="dash-sidebar" style={styles.sidebar}>
           <Calendar
             onChange={setSelectedDate}
             value={selectedDate}

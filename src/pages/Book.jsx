@@ -6,6 +6,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { format, startOfDay } from 'date-fns';
 import { api } from '../api';
+import { apptItems } from '../utils';
 import { useAuth } from '../AuthContext';
 import ServiceCard from '../components/ServiceCard';
 import StaffCard from '../components/StaffCard';
@@ -38,6 +39,7 @@ export default function Book() {
   const [clientNotes, setClientNotes] = useState('');
   const [clientSecret, setClientSecret] = useState(null);
   const [booking, setBooking] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
 
@@ -113,9 +115,21 @@ export default function Book() {
   }
 
   async function confirmBooking() {
-    setLoading(true); setErr('');
     const token = session?.access_token;
-    if (!token) { setErr('Please sign in to book.'); setLoading(false); return; }
+
+    // Guests must supply valid contact details (the backend 400s without them).
+    if (!token) {
+      if (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim()) {
+        setErr('Please fill in your name, email, and phone to book as a guest.');
+        return;
+      }
+      if (!isValidEmail(guestEmail.trim())) {
+        setErr('Please enter a valid email address.');
+        return;
+      }
+    }
+
+    setLoading(true); setErr('');
 
     try {
       const result = await api.createAppointment({
@@ -124,14 +138,23 @@ export default function Book() {
         start_time: selectedSlot,
         client_notes: clientNotes,
         ...(promoApplied ? { discount_code: promoApplied.code } : {}),
+        ...(token ? {} : {
+          guest_name: guestName.trim(),
+          guest_email: guestEmail.trim(),
+          guest_phone: guestPhone.trim(),
+        }),
       }, token);
 
       setBooking(result.appointment);
 
       if (result.client_secret) {
         setClientSecret(result.client_secret);
-      } else {
+      } else if (token) {
+        // Authed users go to the (auth-gated) confirmation page.
         navigate(`/confirm/${result.appointment.id}`);
+      } else {
+        // Guests can't fetch /confirm/:id — show the inline confirmation.
+        setConfirmed(true);
       }
     } catch (e) {
       setErr(e.message);
@@ -141,7 +164,31 @@ export default function Book() {
   }
 
   function onPaymentSuccess() {
-    navigate(`/confirm/${booking.id}`);
+    if (session?.access_token) {
+      navigate(`/confirm/${booking.id}`);
+    } else {
+      // Guest deposit paid — surface the inline confirmation.
+      setClientSecret(null);
+      setConfirmed(true);
+    }
+  }
+
+  function bookAnother() {
+    setStep(0);
+    setSelectedServices([]);
+    setSelectedStaff(null);
+    setSelectedDate(null);
+    setSelectedSlot(null);
+    setGuestName('');
+    setGuestEmail('');
+    setGuestPhone('');
+    setClientNotes('');
+    setClientSecret(null);
+    setBooking(null);
+    setConfirmed(false);
+    setAgreedPolicy(false);
+    clearPromo();
+    setErr('');
   }
 
   const staffForService = staff; // backend filters; show all for now
@@ -150,20 +197,20 @@ export default function Book() {
     <div style={styles.page}>
       <div style={styles.container}>
         {/* Progress bar */}
-        <div style={styles.progress}>
+        <div className="book-progress" style={styles.progress}>
           {STEPS.map((label, i) => (
             <div key={label} style={styles.stepWrap}>
               <div style={{ ...styles.stepDot, ...(i <= step ? styles.stepDotActive : {}) }}>
                 {i < step ? '✓' : i + 1}
               </div>
-              <span style={{ ...styles.stepLabel, ...(i === step ? styles.stepLabelActive : {}) }}>
+              <span className="book-step-label" style={{ ...styles.stepLabel, ...(i === step ? styles.stepLabelActive : {}) }}>
                 {label}
               </span>
             </div>
           ))}
         </div>
 
-        <div style={styles.card}>
+        <div className="book-card" style={styles.card}>
           {err && <div className="alert alert-error" style={{ marginBottom: 16 }}>{err}</div>}
 
           {/* Step 0: Service */}
@@ -226,8 +273,8 @@ export default function Book() {
           {step === 2 && (
             <div>
               <h2 style={styles.stepTitle}>Pick a Date & Time</h2>
-              <div style={styles.calendarRow}>
-                <div style={styles.calendarWrap}>
+              <div className="book-calendar-row" style={styles.calendarRow}>
+                <div className="book-calendar-wrap" style={styles.calendarWrap}>
                   <Calendar
                     onChange={d => { setSelectedDate(d); setSelectedSlot(null); }}
                     value={selectedDate}
@@ -270,8 +317,8 @@ export default function Book() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div className="alert alert-info">
-                    <strong>No account required</strong> — but signing in saves your history.{' '}
-                    <a href="/login" style={{ color: '#C8A24B' }}>Sign in</a>
+                    Booking as a guest — or{' '}
+                    <a href="/login" style={{ color: '#C8A24B' }}>sign in</a> for faster checkout next time.
                   </div>
                   <div className="form-group">
                     <label className="form-label">Full Name</label>
@@ -283,7 +330,7 @@ export default function Book() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Phone</label>
-                    <input className="form-input" type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
+                    <input className="form-input" type="tel" value={guestPhone} onChange={e => setGuestPhone(e.target.value)} required placeholder="+1 (555) 000-0000" />
                   </div>
                 </div>
               )}
@@ -295,15 +342,15 @@ export default function Book() {
                 <button onClick={back} style={styles.backBtn}>← Back</button>
                 <button
                   onClick={next}
-                  disabled={!user && (!guestName || !guestEmail)}
-                  style={{ ...styles.nextBtn, opacity: (!user && (!guestName || !guestEmail)) ? 0.4 : 1 }}
+                  disabled={!user && (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim() || !isValidEmail(guestEmail.trim()))}
+                  style={{ ...styles.nextBtn, opacity: (!user && (!guestName.trim() || !guestEmail.trim() || !guestPhone.trim() || !isValidEmail(guestEmail.trim()))) ? 0.4 : 1 }}
                 >Review →</button>
               </div>
             </div>
           )}
 
           {/* Step 4: Confirm */}
-          {step === 4 && !clientSecret && (
+          {step === 4 && !clientSecret && !confirmed && (
             <div>
               <h2 style={styles.stepTitle}>Review & Confirm</h2>
               <div style={styles.summary}>
@@ -369,11 +416,41 @@ export default function Book() {
 
               <div style={styles.navRow}>
                 <button onClick={back} style={styles.backBtn}>← Back</button>
-                <button onClick={confirmBooking} disabled={loading || !user || !agreedPolicy} style={{ ...styles.confirmBtn, opacity: (loading || !user || !agreedPolicy) ? 0.4 : 1, cursor: (!user || !agreedPolicy) ? 'not-allowed' : 'pointer' }}>
+                <button onClick={confirmBooking} disabled={loading || !agreedPolicy} style={{ ...styles.confirmBtn, opacity: (loading || !agreedPolicy) ? 0.4 : 1, cursor: !agreedPolicy ? 'not-allowed' : 'pointer' }}>
                   {loading ? 'Booking…' : depositRequired ? 'Continue to Payment' : 'Confirm Booking'}
                 </button>
               </div>
-              {!user && <p style={{ textAlign: 'center', marginTop: 12, fontSize: 13, color: '#9A938A' }}>You must <a href="/login" style={{ color: '#C8A24B' }}>sign in</a> to complete your booking.</p>}
+            </div>
+          )}
+
+          {/* Guest inline confirmation (guests can't reach /confirm/:id) */}
+          {confirmed && booking && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={styles.confirmIcon}>✓</div>
+              <h2 style={{ ...styles.stepTitle, textAlign: 'center', fontSize: 30 }}>You're booked!</h2>
+              <p style={{ color: '#9A938A', fontSize: 15, marginBottom: 28 }}>
+                A confirmation has been sent to {guestEmail || 'your email'}. We'll see you soon.
+              </p>
+              <div style={{ ...styles.summary, textAlign: 'left' }}>
+                {apptItems(booking).map((it, i) => (
+                  <SummaryRow key={it.service_id || i} label={it.name} value={it.price_cents != null ? `$${(it.price_cents / 100).toFixed(2)}` : ''} />
+                ))}
+                <div style={styles.divider} />
+                <SummaryRow label="Stylist" value={booking.staff?.full_name || selectedStaff?.full_name || 'First available'} />
+                <SummaryRow label="Date" value={booking.start_time ? format(new Date(booking.start_time), 'EEEE, MMMM d, yyyy') : (selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : '')} />
+                <SummaryRow label="Time" value={booking.start_time ? format(new Date(booking.start_time), 'h:mm a') : (selectedSlot ? format(new Date(selectedSlot), 'h:mm a') : '')} />
+                <div style={styles.divider} />
+                <SummaryRow
+                  label="Total"
+                  value={`$${((booking.total_cents != null ? booking.total_cents : (promoApplied ? promoApplied.discounted_cents : totalCents)) / 100).toFixed(2)}`}
+                  bold
+                />
+              </div>
+              <div style={styles.policyBox}>
+                <strong style={{ color: '#D8BC7E' }}>Cancellation policy</strong>
+                <p style={{ margin: '6px 0 0', color: '#9A938A', fontSize: 13.5, lineHeight: 1.6 }}>{CANCELLATION_POLICY}</p>
+              </div>
+              <button onClick={bookAnother} style={{ ...styles.confirmBtn, marginTop: 24, width: '100%' }}>Book another</button>
             </div>
           )}
 
@@ -411,6 +488,10 @@ function SummaryRow({ label, value, bold, accent, strike }) {
       }}>{value}</span>
     </div>
   );
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function formatDuration(minutes) {
@@ -497,5 +578,10 @@ const styles = {
   policyCheck: {
     display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 16,
     cursor: 'pointer', color: '#EDE7DB',
+  },
+  confirmIcon: {
+    width: 64, height: 64, borderRadius: '50%', background: '#0E0E10', color: '#C8A24B',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: 30, fontWeight: 700, margin: '0 auto 20px',
   },
 };
