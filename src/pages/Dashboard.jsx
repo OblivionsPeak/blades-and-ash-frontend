@@ -22,6 +22,11 @@ export default function Dashboard() {
   const [modalOpen, setModalOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  // No-show / late-cancel fee charging (admin, inside the appointment modal)
+  const [feeType, setFeeType] = useState('no_show');
+  const [feeBusy, setFeeBusy] = useState(false);
+  const [feeResult, setFeeResult] = useState(null); // { ok, message }
+
   // New-appointment modal (book on behalf of a client)
   const [newApptOpen, setNewApptOpen] = useState(false);
   const [naClients, setNaClients] = useState([]);
@@ -138,10 +143,37 @@ export default function Dashboard() {
 
   async function updateStatus(id, status) {
     setUpdatingStatus(true);
-    await api.updateAppointment(id, { status }, session.access_token);
-    setAppointments(a => a.map(x => x.id === id ? { ...x, status } : x));
-    setSelectedAppt(s => s ? { ...s, status } : s);
+    const updated = await api.updateAppointment(id, { status }, session.access_token);
+    setAppointments(a => a.map(x => x.id === id ? { ...x, ...updated } : x));
+    setSelectedAppt(s => s ? { ...s, ...updated } : s);
     setUpdatingStatus(false);
+  }
+
+  function openAppt(appt) {
+    setSelectedAppt(appt);
+    setFeeResult(null);
+    setFeeType('no_show');
+    setModalOpen(true);
+  }
+
+  async function chargeFee() {
+    if (!selectedAppt) return;
+    setFeeBusy(true);
+    setFeeResult(null);
+    try {
+      const res = await api.chargeFee(selectedAppt.id, { fee_type: feeType }, session.access_token);
+      if (res.charged) {
+        setFeeResult({ ok: true, message: `Charged $${(res.amount_cents / 100).toFixed(2)} to the card on file.` });
+        setAppointments(a => a.map(x => x.id === selectedAppt.id ? { ...x, ...res.appointment } : x));
+        setSelectedAppt(s => s ? { ...s, ...res.appointment } : s);
+      } else {
+        setFeeResult({ ok: true, message: res.message || 'Nothing to charge.' });
+      }
+    } catch (e) {
+      setFeeResult({ ok: false, message: e.message || 'Could not charge the fee.' });
+    } finally {
+      setFeeBusy(false);
+    }
   }
 
   const dayAppts = appointments
@@ -157,7 +189,7 @@ export default function Dashboard() {
             <StatPill label="Today" value={stats.today_count} />
             <StatPill label="Upcoming" value={stats.upcoming_count} />
             <StatPill label="Clients" value={stats.client_count} />
-            <StatPill label="Revenue (month)" value={`$${((stats.revenue_this_month_cents || 0) / 100).toFixed(0)}`} />
+            <StatPill label="Collected (month)" value={`$${((stats.revenue_this_month_cents || 0) / 100).toFixed(0)}`} />
           </div>
         </div>
       )}
@@ -202,7 +234,7 @@ export default function Dashboard() {
               {dayAppts.map(a => (
                 <div
                   key={a.id}
-                  onClick={() => { setSelectedAppt(a); setModalOpen(true); }}
+                  onClick={() => openAppt(a)}
                   style={{ ...styles.apptBlock, borderLeft: `4px solid ${STATUS_COLORS[a.status] || '#ccc'}` }}
                 >
                   <div style={styles.apptTime}>
@@ -332,6 +364,38 @@ export default function Dashboard() {
                 {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
               </select>
             </div>
+
+            {/* No-show / late-cancel fee — charges the client's saved card */}
+            {isAdmin && selectedAppt.client?.id && (
+              <>
+                <div className="divider" />
+                <div>
+                  <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Charge a fee</label>
+                  {selectedAppt.fee_charged_cents > 0 && (
+                    <p style={{ fontSize: 13, color: '#10B981', marginBottom: 8 }}>
+                      ${(selectedAppt.fee_charged_cents / 100).toFixed(2)} fee already charged.
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <select className="form-select" value={feeType} onChange={e => setFeeType(e.target.value)} disabled={feeBusy} style={{ flex: 1 }}>
+                      <option value="no_show">No-show (100%)</option>
+                      <option value="late_cancel">Late cancel (50%)</option>
+                    </select>
+                    <button onClick={chargeFee} disabled={feeBusy} style={styles.chargeFeeBtn}>
+                      {feeBusy ? 'Charging…' : 'Charge card'}
+                    </button>
+                  </div>
+                  {feeResult && (
+                    <p style={{ fontSize: 13, marginTop: 8, color: feeResult.ok ? '#10B981' : '#EF4444' }}>
+                      {feeResult.message}
+                    </p>
+                  )}
+                  <p style={{ fontSize: 12, color: '#9A938A', marginTop: 8, lineHeight: 1.5 }}>
+                    Charges the card on file (minus anything already paid). Requires a saved card — add one from the Clients tab.
+                  </p>
+                </div>
+              </>
+            )}
           </div>
         )}
       </Modal>
@@ -387,6 +451,11 @@ const styles = {
   confirmNewBtn: {
     padding: '12px 32px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
     border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
+  },
+  chargeFeeBtn: {
+    padding: '0 20px', borderRadius: 8, background: '#0E0E10', color: '#C8A24B',
+    border: '1px solid #2A2A2A', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+    whiteSpace: 'nowrap', fontFamily: "'Jost', sans-serif",
   },
   dayTitle: { fontFamily: "'Cormorant', serif", fontSize: 24, color: '#EDE7DB' },
   dayCount: { fontSize: 13, color: '#9A938A' },

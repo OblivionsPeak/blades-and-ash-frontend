@@ -2,11 +2,11 @@ import { format } from 'date-fns';
 import StatusBadge from './StatusBadge';
 import { apptServiceNames } from '../utils';
 
-export default function AppointmentCard({ appointment, onCancel, showStaff }) {
+export default function AppointmentCard({ appointment, onCancel, onReschedule, showStaff }) {
   const start = new Date(appointment.start_time);
   const end = new Date(appointment.end_time);
   const isPast = end < new Date();
-  const canCancel = !isPast && !['cancelled', 'completed'].includes(appointment.status);
+  const canManage = !isPast && !['cancelled', 'completed'].includes(appointment.status);
 
   return (
     <div style={styles.card}>
@@ -35,13 +35,19 @@ export default function AppointmentCard({ appointment, onCancel, showStaff }) {
         {appointment.client_notes && (
           <p style={styles.notes}>"{appointment.client_notes}"</p>
         )}
-        {canCancel && onCancel && (
-          <button
-            onClick={() => onCancel(appointment.id)}
-            style={styles.cancelBtn}
-          >
-            Cancel
-          </button>
+        {canManage && (onReschedule || onCancel) && (
+          <div style={styles.actions}>
+            {onReschedule && (
+              <button onClick={() => onReschedule(appointment)} style={styles.rescheduleBtn}>
+                Reschedule
+              </button>
+            )}
+            {onCancel && (
+              <button onClick={() => onCancel(appointment.id)} style={styles.cancelBtn}>
+                Cancel
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -69,8 +75,14 @@ const styles = {
   right: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
   price: { fontSize: 16, fontWeight: 700, color: '#EDE7DB' },
   notes: { fontSize: 13, color: '#9A938A', fontStyle: 'italic', marginTop: 8 },
+  actions: { display: 'flex', gap: 10, marginTop: 12 },
+  rescheduleBtn: {
+    padding: '6px 16px', borderRadius: 999,
+    background: 'none', border: '1px solid #2A2A2A', color: '#C8A24B',
+    fontSize: 13, fontWeight: 500, cursor: 'pointer',
+  },
   cancelBtn: {
-    marginTop: 12, padding: '6px 16px', borderRadius: 999,
+    padding: '6px 16px', borderRadius: 999,
     background: 'none', border: '1px solid #2A2A2A', color: '#C0392B',
     fontSize: 13, fontWeight: 500, cursor: 'pointer',
   },

@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Calendar from 'react-calendar';
+import 'react-calendar/dist/Calendar.css';
+import { format } from 'date-fns';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import { supabase } from '../supabase';
+import { apptItems } from '../utils';
 import AppointmentCard from '../components/AppointmentCard';
+import Modal from '../components/Modal';
 
 export default function Profile() {
   const { user, profile, session, refreshProfile } = useAuth();
@@ -15,6 +20,15 @@ export default function Profile() {
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+
+  // Reschedule modal
+  const [rsAppt, setRsAppt] = useState(null);
+  const [rsDate, setRsDate] = useState(null);
+  const [rsSlots, setRsSlots] = useState([]);
+  const [rsSlotsLoading, setRsSlotsLoading] = useState(false);
+  const [rsSlot, setRsSlot] = useState('');
+  const [rsSaving, setRsSaving] = useState(false);
+  const [rsErr, setRsErr] = useState('');
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -31,6 +45,45 @@ export default function Profile() {
     if (!confirm('Cancel this appointment?')) return;
     await api.cancelAppointment(id, session.access_token);
     setAppointments(a => a.map(x => x.id === id ? { ...x, status: 'cancelled' } : x));
+  }
+
+  function openReschedule(appt) {
+    setRsAppt(appt);
+    setRsDate(null);
+    setRsSlots([]);
+    setRsSlot('');
+    setRsErr('');
+  }
+
+  // Load open times whenever a date is picked in the reschedule modal.
+  useEffect(() => {
+    if (!rsAppt || !rsDate) return;
+    const staffId = rsAppt.staff?.id;
+    const serviceIds = apptItems(rsAppt).map(i => i.service_id).filter(Boolean);
+    if (!staffId || serviceIds.length === 0) return;
+    setRsSlotsLoading(true);
+    setRsSlot('');
+    api.getAvailability({ staff_id: staffId, service_ids: serviceIds.join(','), date: format(rsDate, 'yyyy-MM-dd') })
+      .then(data => setRsSlots(Array.isArray(data) ? data : (data.slots || [])))
+      .catch(() => setRsSlots([]))
+      .finally(() => setRsSlotsLoading(false));
+  }, [rsAppt, rsDate]);
+
+  async function submitReschedule() {
+    if (!rsAppt || !rsSlot) return;
+    setRsSaving(true);
+    setRsErr('');
+    try {
+      const res = await api.rescheduleAppointment(rsAppt.id, { start_time: rsSlot }, session.access_token);
+      setAppointments(a => a.map(x => x.id === rsAppt.id ? { ...x, ...res.appointment } : x));
+      setRsAppt(null);
+      setMsg('Appointment rescheduled.');
+      setTimeout(() => setMsg(''), 3000);
+    } catch (e) {
+      setRsErr(e.message || 'Could not reschedule. Please try another time.');
+    } finally {
+      setRsSaving(false);
+    }
   }
 
   async function saveProfile() {
@@ -93,7 +146,7 @@ export default function Profile() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {upcoming.map(a => <AppointmentCard key={a.id} appointment={a} showStaff onCancel={handleCancel} />)}
+            {upcoming.map(a => <AppointmentCard key={a.id} appointment={a} showStaff onCancel={handleCancel} onReschedule={openReschedule} />)}
           </div>
         )}
 
@@ -107,6 +160,41 @@ export default function Profile() {
           </>
         )}
       </div>
+
+      {/* Reschedule modal */}
+      <Modal open={!!rsAppt} onClose={() => setRsAppt(null)} title="Reschedule Appointment">
+        {rsAppt && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {rsErr && <div className="alert alert-error">{rsErr}</div>}
+            <p style={{ fontSize: 14, color: '#9A938A', margin: 0 }}>
+              Pick a new date and time. Your services and stylist stay the same.
+            </p>
+            <Calendar
+              onChange={d => setRsDate(d)}
+              value={rsDate}
+              minDate={new Date()}
+              maxDate={new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)}
+            />
+            {rsDate && (
+              rsSlotsLoading ? (
+                <div className="loading-center"><div className="spinner" /></div>
+              ) : rsSlots.length === 0 ? (
+                <p style={{ fontSize: 13, color: '#9A938A' }}>No open times that day — try another date.</p>
+              ) : (
+                <select className="form-select" value={rsSlot} onChange={e => setRsSlot(e.target.value)}>
+                  <option value="">— Choose a time —</option>
+                  {rsSlots.map(slot => (
+                    <option key={slot} value={slot}>{format(new Date(slot), 'h:mm a')}</option>
+                  ))}
+                </select>
+              )
+            )}
+            <button onClick={submitReschedule} disabled={!rsSlot || rsSaving} style={styles.rescheduleConfirm}>
+              {rsSaving ? 'Rescheduling…' : 'Confirm New Time'}
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -148,5 +236,9 @@ const styles = {
     display: 'inline-block', marginTop: 12, padding: '10px 28px',
     borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
     fontWeight: 700, fontSize: 14, textDecoration: 'none',
+  },
+  rescheduleConfirm: {
+    padding: '12px 28px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
+    border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
   },
 };
