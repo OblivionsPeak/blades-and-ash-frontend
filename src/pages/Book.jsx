@@ -52,6 +52,10 @@ export default function Book() {
   // Cancellation policy agreement (required to submit)
   const [agreedPolicy, setAgreedPolicy] = useState(false);
 
+  // Pay-in-full opt-in: when true the client settles the whole service online
+  // now instead of just the deposit (or instead of paying at the salon).
+  const [payInFull, setPayInFull] = useState(false);
+
   // Promo / discount code
   const [promoInput, setPromoInput] = useState('');
   const [promoApplied, setPromoApplied] = useState(null); // { code, label, original_cents, discounted_cents }
@@ -64,6 +68,14 @@ export default function Book() {
   const depositRequired = selectedServices.some(s => s.deposit_required);
   const depositCents = selectedServices.reduce((sum, s) => sum + (s.deposit_required ? (s.deposit_cents || 0) : 0), 0);
   const serviceIds = selectedServices.map(s => s.id);
+
+  // Price actually owed after any promo. Pay-in-full charges this; the deposit
+  // path charges depositCents and leaves the rest due at the salon.
+  const payableTotal = promoApplied ? promoApplied.discounted_cents : totalCents;
+  const dueNow = payInFull ? payableTotal : depositCents;
+  const dueAtSalon = payableTotal - dueNow;
+  // Whether the booking will route through online payment before confirming.
+  const paymentRequired = payInFull || depositRequired;
 
   useEffect(() => {
     api.getServices().then(setServices).catch(() => {});
@@ -158,6 +170,7 @@ export default function Book() {
         service_ids: serviceIds,
         start_time: selectedSlot,
         client_notes: clientNotes,
+        pay_in_full: payInFull,
         ...(promoApplied ? { discount_code: promoApplied.code } : {}),
         ...(token ? {} : {
           guest_name: guestName.trim(),
@@ -208,6 +221,7 @@ export default function Book() {
     setBooking(null);
     setConfirmed(false);
     setAgreedPolicy(false);
+    setPayInFull(false);
     clearPromo();
     setErr('');
   }
@@ -398,13 +412,39 @@ export default function Book() {
                 ) : (
                   <SummaryRow label="Total" value={`$${(totalCents / 100).toFixed(2)}`} bold />
                 )}
-                {depositRequired && (
-                  <SummaryRow label="Due now (deposit)" value={`$${(depositCents / 100).toFixed(2)}`} bold accent />
+                {dueNow > 0 && (
+                  <SummaryRow label={payInFull ? 'Due now (paid in full)' : 'Due now (deposit)'} value={`$${(dueNow / 100).toFixed(2)}`} bold accent />
                 )}
-                {!depositRequired && (
-                  <SummaryRow label="Due at salon" value={`$${((promoApplied ? promoApplied.discounted_cents : totalCents) / 100).toFixed(2)}`} />
+                {dueAtSalon > 0 && (
+                  <SummaryRow label="Due at salon" value={`$${(dueAtSalon / 100).toFixed(2)}`} />
                 )}
               </div>
+
+              {/* Payment option: deposit / pay-at-salon vs pay in full now */}
+              {payableTotal > 0 && (
+                <div style={styles.payBox}>
+                  <label style={{ ...styles.payOption, ...(!payInFull ? styles.payOptionSelected : {}) }}>
+                    <input type="radio" name="payopt" checked={!payInFull} onChange={() => setPayInFull(false)} style={{ accentColor: '#C8A24B', marginTop: 3 }} />
+                    <div>
+                      <div style={styles.payOptTitle}>
+                        {depositRequired ? `Pay deposit now — $${(depositCents / 100).toFixed(2)}` : 'Pay at the salon'}
+                      </div>
+                      <div style={styles.payOptSub}>
+                        {depositRequired
+                          ? `Remaining $${((payableTotal - depositCents) / 100).toFixed(2)} due at your appointment.`
+                          : 'Settle the full amount in person at your appointment.'}
+                      </div>
+                    </div>
+                  </label>
+                  <label style={{ ...styles.payOption, ...(payInFull ? styles.payOptionSelected : {}) }}>
+                    <input type="radio" name="payopt" checked={payInFull} onChange={() => setPayInFull(true)} style={{ accentColor: '#C8A24B', marginTop: 3 }} />
+                    <div>
+                      <div style={styles.payOptTitle}>Pay in full now — ${(payableTotal / 100).toFixed(2)}</div>
+                      <div style={styles.payOptSub}>Pay online today — nothing due at the salon.</div>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               {/* Promo code */}
               <div style={styles.promoBox}>
@@ -443,7 +483,7 @@ export default function Book() {
               <div style={styles.navRow}>
                 <button onClick={back} style={styles.backBtn}>← Back</button>
                 <button onClick={confirmBooking} disabled={loading || !agreedPolicy} style={{ ...styles.confirmBtn, opacity: (loading || !agreedPolicy) ? 0.4 : 1, cursor: !agreedPolicy ? 'not-allowed' : 'pointer' }}>
-                  {loading ? 'Booking…' : depositRequired ? 'Continue to Payment' : 'Confirm Booking'}
+                  {loading ? 'Booking…' : paymentRequired ? 'Continue to Payment' : 'Confirm Booking'}
                 </button>
               </div>
             </div>
@@ -485,11 +525,13 @@ export default function Book() {
             <div>
               <h2 style={styles.stepTitle}>Payment</h2>
               <p style={{ color: '#9A938A', marginBottom: 24, fontSize: 14 }}>
-                A deposit secures your appointment. The remaining balance is due at the salon.
+                {payInFull
+                  ? 'Paying in full for your appointment — nothing will be due at the salon.'
+                  : 'A deposit secures your appointment. The remaining balance is due at the salon.'}
               </p>
               <Elements stripe={stripePromise} options={{ clientSecret }}>
                 <PaymentForm
-                  amount={depositCents}
+                  amount={payInFull ? payableTotal : depositCents}
                   clientSecret={clientSecret}
                   onSuccess={onPaymentSuccess}
                   onError={msg => setErr(msg)}
@@ -600,6 +642,15 @@ const styles = {
     padding: '0 22px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
     border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
   },
+  payBox: { marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 },
+  payOption: {
+    display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer',
+    padding: '14px 16px', borderRadius: 10, border: '1.5px solid #2A2A2A',
+    background: '#1E1E22', transition: 'all 0.15s',
+  },
+  payOptionSelected: { border: '1.5px solid #C8A24B', background: 'rgba(200,162,75,0.08)' },
+  payOptTitle: { fontSize: 14.5, fontWeight: 600, color: '#EDE7DB' },
+  payOptSub: { fontSize: 13, color: '#9A938A', marginTop: 3, lineHeight: 1.5 },
   promoBox: { marginTop: 20 },
   promoOk: { color: '#9ad9b4', fontSize: 13, marginTop: 8 },
   promoErr: { color: '#f8a3a3', fontSize: 13, marginTop: 8 },
