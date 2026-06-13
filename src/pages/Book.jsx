@@ -11,7 +11,7 @@ import { useAuth } from '../AuthContext';
 import ServiceCard from '../components/ServiceCard';
 import StaffCard from '../components/StaffCard';
 import TimeSlotPicker from '../components/TimeSlotPicker';
-import PaymentForm from '../components/PaymentForm';
+import CardSetupForm from '../components/CardSetupForm';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -43,7 +43,7 @@ export default function Book() {
   const [guestEmail, setGuestEmail] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [clientNotes, setClientNotes] = useState('');
-  const [clientSecret, setClientSecret] = useState(null);
+  const [setupClientSecret, setSetupClientSecret] = useState(null);
   const [booking, setBooking] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -61,8 +61,6 @@ export default function Book() {
   // Summed totals across all selected services.
   const totalCents = selectedServices.reduce((sum, s) => sum + (s.price_cents || 0), 0);
   const totalMinutes = selectedServices.reduce((sum, s) => sum + (s.duration_minutes || 0), 0);
-  const depositRequired = selectedServices.some(s => s.deposit_required);
-  const depositCents = selectedServices.reduce((sum, s) => sum + (s.deposit_required ? (s.deposit_cents || 0) : 0), 0);
   const serviceIds = selectedServices.map(s => s.id);
 
   useEffect(() => {
@@ -168,8 +166,9 @@ export default function Book() {
 
       setBooking(result.appointment);
 
-      if (result.client_secret) {
-        setClientSecret(result.client_secret);
+      if (result.setup_client_secret) {
+        // Card on file is required — go to the card-capture step.
+        setSetupClientSecret(result.setup_client_secret);
       } else if (token) {
         // Authed users go to the (auth-gated) confirmation page.
         navigate(`/confirm/${result.appointment.id}`);
@@ -184,12 +183,12 @@ export default function Book() {
     }
   }
 
-  function onPaymentSuccess() {
+  function onCardSaved() {
     if (session?.access_token) {
       navigate(`/confirm/${booking.id}`);
     } else {
-      // Guest deposit paid — surface the inline confirmation.
-      setClientSecret(null);
+      // Guest card saved — surface the inline confirmation.
+      setSetupClientSecret(null);
       setConfirmed(true);
     }
   }
@@ -204,7 +203,7 @@ export default function Book() {
     setGuestEmail('');
     setGuestPhone('');
     setClientNotes('');
-    setClientSecret(null);
+    setSetupClientSecret(null);
     setBooking(null);
     setConfirmed(false);
     setAgreedPolicy(false);
@@ -377,7 +376,7 @@ export default function Book() {
           )}
 
           {/* Step: Confirm */}
-          {currentStep === 'confirm' && !clientSecret && !confirmed && (
+          {currentStep === 'confirm' && !setupClientSecret && !confirmed && (
             <div>
               <h2 style={styles.stepTitle}>Review & Confirm</h2>
               <div style={styles.summary}>
@@ -399,12 +398,17 @@ export default function Book() {
                 ) : (
                   <SummaryRow label="Total" value={`$${(totalCents / 100).toFixed(2)}`} bold />
                 )}
-                {depositRequired && (
-                  <SummaryRow label="Due now (deposit)" value={`$${(depositCents / 100).toFixed(2)}`} bold accent />
-                )}
-                {!depositRequired && (
-                  <SummaryRow label="Due at salon" value={`$${((promoApplied ? promoApplied.discounted_cents : totalCents) / 100).toFixed(2)}`} />
-                )}
+                <SummaryRow label="Due now" value="$0.00" />
+                <SummaryRow label="Due at salon" value={`$${((promoApplied ? promoApplied.discounted_cents : totalCents) / 100).toFixed(2)}`} bold accent />
+              </div>
+
+              {/* Card-on-file notice */}
+              <div style={styles.cardNotice}>
+                <strong style={{ color: '#D8BC7E' }}>A card on file is required to book</strong>
+                <p style={{ margin: '6px 0 0', color: '#9A938A', fontSize: 13.5, lineHeight: 1.6 }}>
+                  You won't be charged now — you'll pay for your service at the salon. Your card is
+                  only kept on file and charged if you no-show or cancel late, per the policy below.
+                </p>
               </div>
 
               {/* Promo code */}
@@ -444,7 +448,7 @@ export default function Book() {
               <div style={styles.navRow}>
                 <button onClick={back} style={styles.backBtn}>← Back</button>
                 <button onClick={confirmBooking} disabled={loading || !agreedPolicy} style={{ ...styles.confirmBtn, opacity: (loading || !agreedPolicy) ? 0.4 : 1, cursor: !agreedPolicy ? 'not-allowed' : 'pointer' }}>
-                  {loading ? 'Booking…' : depositRequired ? 'Continue to Payment' : 'Confirm Booking'}
+                  {loading ? 'Booking…' : 'Continue to Add Card'}
                 </button>
               </div>
             </div>
@@ -481,18 +485,19 @@ export default function Book() {
             </div>
           )}
 
-          {/* Payment step */}
-          {clientSecret && (
+          {/* Card-on-file step */}
+          {setupClientSecret && (
             <div>
-              <h2 style={styles.stepTitle}>Payment</h2>
-              <p style={{ color: '#9A938A', marginBottom: 24, fontSize: 14 }}>
-                A deposit secures your appointment. The remaining balance is due at the salon.
+              <h2 style={styles.stepTitle}>Save a Card to Confirm</h2>
+              <p style={{ color: '#9A938A', marginBottom: 24, fontSize: 14, lineHeight: 1.6 }}>
+                We don't charge you now — your card is only kept on file to hold your appointment.
+                You'll pay for your service at the salon. Per the cancellation policy, no-shows are
+                charged 100% and cancellations within 48 hours are charged 50%, to the card on file.
               </p>
-              <Elements stripe={stripePromise} options={{ clientSecret }}>
-                <PaymentForm
-                  amount={depositCents}
-                  clientSecret={clientSecret}
-                  onSuccess={onPaymentSuccess}
+              <Elements stripe={stripePromise} options={{ clientSecret: setupClientSecret }}>
+                <CardSetupForm
+                  clientSecret={setupClientSecret}
+                  onSuccess={onCardSaved}
                   onError={msg => setErr(msg)}
                 />
               </Elements>
@@ -600,6 +605,10 @@ const styles = {
   applyBtn: {
     padding: '0 22px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10',
     border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: "'Jost', sans-serif",
+  },
+  cardNotice: {
+    marginTop: 20, background: '#1E1E22', border: '1px solid #2A2A2A',
+    borderRadius: 10, padding: '14px 16px',
   },
   promoBox: { marginTop: 20 },
   promoOk: { color: '#9ad9b4', fontSize: 13, marginTop: 8 },
