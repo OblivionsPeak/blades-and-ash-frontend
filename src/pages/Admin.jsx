@@ -11,6 +11,16 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// Format a YYYY-MM-DD range for display. Dates are parsed as local (append
+// T00:00:00) so the calendar day isn't shifted by the timezone offset.
+function formatDateRange(start, end) {
+  const opts = { month: 'short', day: 'numeric', year: 'numeric' };
+  const s = new Date(start + 'T00:00:00').toLocaleDateString('en-US', opts);
+  if (start === end) return s;
+  const e = new Date(end + 'T00:00:00').toLocaleDateString('en-US', opts);
+  return `${s} – ${e}`;
+}
+
 export default function Admin() {
   const { user, profile, session } = useAuth();
   const navigate = useNavigate();
@@ -42,6 +52,11 @@ export default function Admin() {
   const [availability, setAvailability] = useState(
     DAYS.map((_, i) => ({ day_of_week: i, start_time: '09:00', end_time: '17:00', active: i > 0 && i < 6 }))
   );
+
+  // Time off / blocked dates for the selected staff member
+  const [timeOff, setTimeOff] = useState([]);
+  const [toForm, setToForm] = useState({ start_date: '', end_date: '', reason: '' });
+  const [toErr, setToErr] = useState('');
 
   // Staff services
   const [staffServices, setStaffServices] = useState({});
@@ -109,6 +124,11 @@ export default function Admin() {
     api.getStaffServices(selectedStaff.id).then(data => {
       setStaffServices(ss => ({ ...ss, [selectedStaff.id]: (data.services || data || []).map(s => s.id) }));
     });
+    api.getStaffTimeOff(selectedStaff.id, session.access_token)
+      .then(data => setTimeOff(data || []))
+      .catch(() => setTimeOff([]));
+    setToForm({ start_date: '', end_date: '', reason: '' });
+    setToErr('');
   }, [selectedStaff]);
 
   function openNewSvc() {
@@ -299,6 +319,25 @@ export default function Admin() {
     const active = availability.filter(a => a.active).map(({ day_of_week, start_time, end_time }) => ({ day_of_week, start_time, end_time }));
     await api.updateAvailability(selectedStaff.id, active, session?.access_token);
     notify('Availability saved.');
+  }
+
+  async function addTimeOff() {
+    setToErr('');
+    const { start_date, end_date, reason } = toForm;
+    if (!start_date || !end_date) { setToErr('Pick a start and end date.'); return; }
+    if (end_date < start_date) { setToErr('End date must be on or after the start date.'); return; }
+    try {
+      const block = await api.addStaffTimeOff(selectedStaff.id, { start_date, end_date, reason: reason.trim() || null }, session.access_token);
+      setTimeOff(list => [...list, block].sort((a, b) => a.start_date.localeCompare(b.start_date)));
+      setToForm({ start_date: '', end_date: '', reason: '' });
+    } catch (e) {
+      setToErr(e.message || 'Could not add that time off.');
+    }
+  }
+
+  async function removeTimeOff(blockId) {
+    await api.removeStaffTimeOff(selectedStaff.id, blockId, session.access_token);
+    setTimeOff(list => list.filter(b => b.id !== blockId));
   }
 
   async function toggleStaffService(staffId, serviceId, assigned) {
@@ -559,6 +598,48 @@ export default function Admin() {
                   })}
                 </div>
                 <button onClick={saveAvailability} style={styles.saveAvailBtn}>Save Availability</button>
+
+                {/* Time off / blocked dates */}
+                <div style={{ marginTop: 36, borderTop: '1px solid #2A2A2A', paddingTop: 24 }}>
+                  <h3 style={{ fontFamily: "'Cormorant', serif", fontSize: 20, color: '#D8BC7E', margin: '0 0 6px' }}>Time Off / Blocked Dates</h3>
+                  <p style={{ color: '#9A938A', fontSize: 13.5, margin: '0 0 16px', lineHeight: 1.5 }}>
+                    Block whole days (vacation, holidays). Blocked dates override the weekly schedule — no bookings can be made on them.
+                  </p>
+
+                  {timeOff.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                      {timeOff.map(b => (
+                        <div key={b.id} style={styles.timeOffRow}>
+                          <div>
+                            <span style={{ fontWeight: 600 }}>{formatDateRange(b.start_date, b.end_date)}</span>
+                            {b.reason && <span style={{ color: '#9A938A', fontSize: 13, marginLeft: 8 }}>· {b.reason}</span>}
+                          </div>
+                          <button onClick={() => removeTimeOff(b.id)} style={styles.timeOffRemove}>Remove</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="admin-day-row" style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">From</label>
+                      <input type="date" className="form-input" style={{ width: 160 }} value={toForm.start_date}
+                        onChange={e => setToForm(f => ({ ...f, start_date: e.target.value, end_date: f.end_date || e.target.value }))} />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">To</label>
+                      <input type="date" className="form-input" style={{ width: 160 }} value={toForm.end_date} min={toForm.start_date || undefined}
+                        onChange={e => setToForm(f => ({ ...f, end_date: e.target.value }))} />
+                    </div>
+                    <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 160 }}>
+                      <label className="form-label">Reason (optional)</label>
+                      <input type="text" className="form-input" placeholder="Vacation" value={toForm.reason}
+                        onChange={e => setToForm(f => ({ ...f, reason: e.target.value }))} />
+                    </div>
+                    <button onClick={addTimeOff} style={styles.addBtn}>Block Dates</button>
+                  </div>
+                  {toErr && <p style={{ color: '#f8a3a3', fontSize: 13, marginTop: 8 }}>{toErr}</p>}
+                </div>
               </div>
             )}
           </div>
@@ -833,4 +914,6 @@ const styles = {
   dayRow: { display: 'flex', alignItems: 'center', gap: 20, background: '#16161A', borderRadius: 8, padding: '12px 16px', border: '1px solid #2A2A2A' },
   dayToggle: { display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', minWidth: 140 },
   saveAvailBtn: { padding: '12px 32px', borderRadius: 999, background: '#0E0E10', color: '#C8A24B', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14, fontFamily: "'Jost', sans-serif" },
+  timeOffRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#1E1E22', border: '1px solid #2A2A2A', borderRadius: 10 },
+  timeOffRemove: { padding: '6px 14px', borderRadius: 999, background: 'none', border: '1px solid #2A2A2A', color: '#C0392B', fontSize: 13, cursor: 'pointer' },
 };

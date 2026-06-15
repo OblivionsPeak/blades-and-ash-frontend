@@ -21,6 +21,9 @@ export const api = {
   getStaffServices: (id) => apiFetch(`/api/staff/${id}/services`),
   getStaffAvailability: (id) => apiFetch(`/api/staff/${id}/availability`),
   updateAvailability: (id, body, token) => apiFetch(`/api/staff/${id}/availability`, { method: 'PUT', body: JSON.stringify(body) }, token),
+  getStaffTimeOff: (id, token) => apiFetch(`/api/staff/${id}/time-off`, {}, token),
+  addStaffTimeOff: (id, body, token) => apiFetch(`/api/staff/${id}/time-off`, { method: 'POST', body: JSON.stringify(body) }, token),
+  removeStaffTimeOff: (id, blockId, token) => apiFetch(`/api/staff/${id}/time-off/${blockId}`, { method: 'DELETE' }, token),
   assignStaffService: (id, body, token) => apiFetch(`/api/staff/${id}/services`, { method: 'POST', body: JSON.stringify(body) }, token),
   removeStaffService: (id, serviceId, token) => apiFetch(`/api/staff/${id}/services/${serviceId}`, { method: 'DELETE' }, token),
 
