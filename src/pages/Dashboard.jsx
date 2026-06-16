@@ -36,6 +36,13 @@ export default function Dashboard() {
   const [discResult, setDiscResult] = useState(null); // { ok, message }
   const [linkCopied, setLinkCopied] = useState(false);
 
+  // Record an in-person (cash/check/other) payment into the ledger.
+  const [recAmount, setRecAmount] = useState('');
+  const [recMethod, setRecMethod] = useState('cash');
+  const [recNote, setRecNote] = useState('');
+  const [recBusy, setRecBusy] = useState(false);
+  const [recResult, setRecResult] = useState(null); // { ok, message }
+
   // New-appointment modal (book on behalf of a client)
   const [newApptOpen, setNewApptOpen] = useState(false);
   const [naClients, setNaClients] = useState([]);
@@ -174,7 +181,35 @@ export default function Dashboard() {
     setDiscResult(null);
     setApplyCode(appt.discount_code || '');
     setLinkCopied(false);
+    setRecAmount('');
+    setRecMethod('cash');
+    setRecNote('');
+    setRecResult(null);
     setModalOpen(true);
+  }
+
+  async function recordCashPayment() {
+    if (!selectedAppt) return;
+    const dollars = Number(recAmount);
+    if (!dollars || dollars <= 0) { setRecResult({ ok: false, message: 'Enter an amount greater than zero.' }); return; }
+    setRecBusy(true);
+    setRecResult(null);
+    try {
+      const res = await api.recordPayment(
+        selectedAppt.id,
+        { amount_cents: Math.round(dollars * 100), method: recMethod, note: recNote || null },
+        session.access_token,
+      );
+      setAppointments(a => a.map(x => x.id === selectedAppt.id ? { ...x, ...res.appointment } : x));
+      setSelectedAppt(s => s ? { ...s, ...res.appointment } : s);
+      setRecAmount('');
+      setRecNote('');
+      setRecResult({ ok: true, message: `Recorded $${dollars.toFixed(2)} (${recMethod}).` });
+    } catch (e) {
+      setRecResult({ ok: false, message: e.message || 'Could not record payment.' });
+    } finally {
+      setRecBusy(false);
+    }
   }
 
   async function copyPayLink() {
@@ -460,6 +495,48 @@ export default function Dashboard() {
                   </button>
                   <p style={{ fontSize: 12, color: '#9A938A', marginTop: 6, lineHeight: 1.5 }}>
                     Text or email this link to the client — they sign in and pay the current total online.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Record an in-person payment (cash/check) into the ledger */}
+            {isAdmin && (
+              <>
+                <div className="divider" />
+                <div>
+                  <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Record a payment</label>
+                  <p style={{ fontSize: 13, color: '#9A938A', marginBottom: 10 }}>
+                    Paid: ${(((selectedAppt.amount_paid_cents || 0)) / 100).toFixed(2)} of ${((selectedAppt.total_cents || 0) / 100).toFixed(2)}
+                    {' · '}Balance: ${(Math.max(0, (selectedAppt.total_cents || 0) - (selectedAppt.amount_paid_cents || 0)) / 100).toFixed(2)}
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <input
+                      className="form-input" type="number" min="0" step="0.01" placeholder="Amount $"
+                      value={recAmount} onChange={e => setRecAmount(e.target.value)} disabled={recBusy}
+                      style={{ flex: '1 1 120px' }}
+                    />
+                    <select className="form-select" value={recMethod} onChange={e => setRecMethod(e.target.value)} disabled={recBusy} style={{ flex: '1 1 110px' }}>
+                      <option value="cash">Cash</option>
+                      <option value="check">Check</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <button onClick={recordCashPayment} disabled={recBusy} style={styles.chargeFeeBtn}>
+                      {recBusy ? 'Saving…' : 'Record'}
+                    </button>
+                  </div>
+                  <input
+                    className="form-input" type="text" placeholder="Note (optional)"
+                    value={recNote} onChange={e => setRecNote(e.target.value)} disabled={recBusy}
+                    style={{ marginTop: 8 }}
+                  />
+                  {recResult && (
+                    <p style={{ fontSize: 13, marginTop: 8, color: recResult.ok ? '#10B981' : '#EF4444' }}>
+                      {recResult.message}
+                    </p>
+                  )}
+                  <p style={{ fontSize: 12, color: '#9A938A', marginTop: 8, lineHeight: 1.5 }}>
+                    For cash or check taken in person. Card payments are recorded automatically through Stripe. Everything appears in the Payments report.
                   </p>
                 </div>
               </>

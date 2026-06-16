@@ -37,6 +37,7 @@ export const api = {
   rescheduleAppointment: (id, body, token) => apiFetch(`/api/appointments/${id}/reschedule`, { method: 'PUT', body: JSON.stringify(body) }, token),
   chargeFee: (id, body, token) => apiFetch(`/api/appointments/${id}/charge-fee`, { method: 'POST', body: JSON.stringify(body) }, token),
   applyAppointmentDiscount: (id, discountCode, token) => apiFetch(`/api/appointments/${id}/apply-discount`, { method: 'POST', body: JSON.stringify({ discount_code: discountCode }) }, token),
+  recordPayment: (id, body, token) => apiFetch(`/api/appointments/${id}/record-payment`, { method: 'POST', body: JSON.stringify(body) }, token),
 
   createPaymentIntent: (body, token) => apiFetch('/api/payments/create-intent', { method: 'POST', body: JSON.stringify(body) }, token),
 
@@ -47,6 +48,7 @@ export const api = {
   validateDiscount: (body, token) => apiFetch('/api/discounts/validate', { method: 'POST', body: JSON.stringify(body) }, token),
 
   getDashboard: (token) => apiFetch('/api/admin/dashboard', {}, token),
+  getPayments: (token, params = {}) => apiFetch(`/api/admin/payments?${new URLSearchParams(params)}`, {}, token),
   getClients: (token) => apiFetch('/api/admin/clients', {}, token),
   createClient: (body, token) => apiFetch('/api/admin/clients', { method: 'POST', body: JSON.stringify(body) }, token),
   createCardSetup: (id, token) => apiFetch(`/api/admin/clients/${id}/card-setup`, { method: 'POST' }, token),

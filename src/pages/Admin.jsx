@@ -42,6 +42,13 @@ export default function Admin() {
   const [editDisc, setEditDisc] = useState(null);
   const [discForm, setDiscForm] = useState({ code: '', type: 'percent', value: 10, scope: 'all', expires_at: '', active: true, admin_only: false });
 
+  // Payments / reconciliation tab. Defaults to the current month.
+  const [payFrom, setPayFrom] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); });
+  const [payTo, setPayTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [payments, setPayments] = useState([]);
+  const [payTotals, setPayTotals] = useState({ by_method: {}, total_cents: 0 });
+  const [payLoading, setPayLoading] = useState(false);
+
   // Bulk import
   const [importModal, setImportModal] = useState(false);
   const [importText, setImportText] = useState('');
@@ -92,6 +99,9 @@ export default function Admin() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [session]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (tab === 'payments') loadPayments(); }, [tab, payFrom, payTo, session]);
 
   async function refreshTeam() {
     const token = session?.access_token;
@@ -233,6 +243,50 @@ export default function Admin() {
   }
   function fmtDiscValue(d) {
     return d.type === 'percent' ? `${d.value}%` : `$${(d.value / 100).toFixed(2)}`;
+  }
+
+  async function loadPayments() {
+    const token = session?.access_token;
+    if (!token) return;
+    setPayLoading(true);
+    try {
+      const params = {};
+      if (payFrom) params.from = new Date(payFrom + 'T00:00:00').toISOString();
+      if (payTo) params.to = new Date(payTo + 'T23:59:59').toISOString();
+      const res = await api.getPayments(token, params);
+      setPayments(res.payments || []);
+      setPayTotals(res.totals || { by_method: {}, total_cents: 0 });
+    } catch (e) {
+      notify(e.message || 'Could not load payments.');
+    } finally {
+      setPayLoading(false);
+    }
+  }
+
+  function csvCell(v) {
+    const s = String(v ?? '');
+    return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  function exportPaymentsCsv() {
+    const header = ['Date', 'Method', 'Kind', 'Amount', 'Client', 'Service', 'Note', 'Recorded by'];
+    const lines = [header, ...payments.map(p => [
+      new Date(p.created_at).toLocaleString('en-US'),
+      p.method,
+      p.kind,
+      (p.amount_cents / 100).toFixed(2),
+      p.client?.full_name || '',
+      p.appointment?.service?.name || '',
+      p.note || '',
+      p.recorder?.full_name || (p.method === 'card' ? 'Stripe' : ''),
+    ])];
+    const csv = lines.map(r => r.map(csvCell).join(',')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `payments_${payFrom}_to_${payTo}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   }
 
   // Parse a pasted list into services. Forgiving about format: one service
@@ -426,6 +480,7 @@ export default function Admin() {
           <button className={`tab-btn ${tab === 'staff' ? 'active' : ''}`} onClick={() => setTab('staff')}>Staff & Services</button>
           <button className={`tab-btn ${tab === 'availability' ? 'active' : ''}`} onClick={() => setTab('availability')}>Availability</button>
           <button className={`tab-btn ${tab === 'discounts' ? 'active' : ''}`} onClick={() => setTab('discounts')}>Discounts</button>
+          <button className={`tab-btn ${tab === 'payments' ? 'active' : ''}`} onClick={() => setTab('payments')}>Payments</button>
         </div>
 
         {/* Services Tab */}
@@ -684,6 +739,65 @@ export default function Admin() {
             )}
           </div>
         )}
+
+        {/* Payments / Reconciliation Tab */}
+        {tab === 'payments' && (
+          <div>
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 20 }}>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">From</label>
+                <input className="form-input" type="date" value={payFrom} onChange={e => setPayFrom(e.target.value)} />
+              </div>
+              <div className="form-group" style={{ margin: 0 }}>
+                <label className="form-label">To</label>
+                <input className="form-input" type="date" value={payTo} onChange={e => setPayTo(e.target.value)} />
+              </div>
+              <button onClick={exportPaymentsCsv} style={styles.addBtn} disabled={!payments.length}>Export CSV</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+              {['card', 'cash', 'check', 'other'].map(m => (
+                <div key={m} style={styles.totalCard}>
+                  <div style={styles.totalLabel}>{m}</div>
+                  <div style={styles.totalValue}>${(((payTotals.by_method?.[m]) || 0) / 100).toFixed(2)}</div>
+                </div>
+              ))}
+              <div style={{ ...styles.totalCard, borderColor: '#C8A24B' }}>
+                <div style={{ ...styles.totalLabel, color: '#C8A24B' }}>Total</div>
+                <div style={{ ...styles.totalValue, color: '#C8A24B' }}>${((payTotals.total_cents || 0) / 100).toFixed(2)}</div>
+              </div>
+            </div>
+            <p style={{ fontSize: 12, color: '#9A938A', marginBottom: 16, lineHeight: 1.5 }}>
+              Reconcile the <strong>card</strong> total against your Stripe payouts, and the <strong>cash</strong>/<strong>check</strong> totals against your drawer and bank deposits.
+            </p>
+
+            {payLoading ? (
+              <div className="loading-center"><div className="spinner" /></div>
+            ) : payments.length === 0 ? (
+              <p style={{ fontSize: 14, color: '#9A938A' }}>No payments in this date range.</p>
+            ) : (
+              <div className="admin-table-scroll" style={styles.table}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr>{['Date', 'Method', 'Amount', 'Client', 'Service', 'Note'].map(h => <th key={h} style={styles.payTh}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {payments.map(p => (
+                      <tr key={p.id}>
+                        <td style={styles.payTd}>{new Date(p.created_at).toLocaleDateString('en-US')}</td>
+                        <td style={styles.payTd}>{p.method}{p.kind === 'fee' ? ' (fee)' : ''}{p.kind === 'refund' ? ' (refund)' : ''}</td>
+                        <td style={styles.payTd}>${(p.amount_cents / 100).toFixed(2)}</td>
+                        <td style={styles.payTd}>{p.client?.full_name || '—'}</td>
+                        <td style={styles.payTd}>{p.appointment?.service?.name || '—'}</td>
+                        <td style={styles.payTd}>{p.note || ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Service Modal */}
@@ -915,6 +1029,11 @@ const styles = {
   pillActive: { fontSize: 12, color: '#9ad9b4', border: '1px solid rgba(154,217,180,0.4)', borderRadius: 999, padding: '3px 10px' },
   pillInactive: { fontSize: 12, color: '#9A938A', border: '1px solid #2A2A2A', borderRadius: 999, padding: '3px 10px' },
   pillAdminOnly: { fontSize: 11, color: '#C8A24B', border: '1px solid rgba(200,162,75,0.4)', borderRadius: 999, padding: '2px 8px', marginLeft: 8, whiteSpace: 'nowrap' },
+  totalCard: { background: '#16161A', border: '1px solid #2A2A2A', borderRadius: 10, padding: '12px 18px', minWidth: 110 },
+  totalLabel: { fontSize: 11, textTransform: 'uppercase', color: '#9A938A', letterSpacing: '0.06em', marginBottom: 4 },
+  totalValue: { fontSize: 20, fontWeight: 700, color: '#EDE7DB' },
+  payTh: { textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#9A938A', borderBottom: '1px solid #2A2A2A', whiteSpace: 'nowrap' },
+  payTd: { padding: '10px 12px', borderBottom: '1px solid #1F1F23', color: '#EDE7DB', verticalAlign: 'top' },
   svcName: { fontWeight: 600, fontSize: 15 },
   svcDesc: { fontSize: 12, color: '#9A938A', marginTop: 2 },
   cell: { fontSize: 14, color: '#9A938A' },
