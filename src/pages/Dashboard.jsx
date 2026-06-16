@@ -27,6 +27,14 @@ export default function Dashboard() {
   const [feeBusy, setFeeBusy] = useState(false);
   const [feeResult, setFeeResult] = useState(null); // { ok, message }
 
+  // Discount application (admin, inside the appointment modal). Holly's codes,
+  // incl. eligibility-gated "salon only" ones, applied to an appointment at
+  // checkout — the customer never enters these.
+  const [discounts, setDiscounts] = useState([]);
+  const [applyCode, setApplyCode] = useState('');
+  const [discBusy, setDiscBusy] = useState(false);
+  const [discResult, setDiscResult] = useState(null); // { ok, message }
+
   // New-appointment modal (book on behalf of a client)
   const [newApptOpen, setNewApptOpen] = useState(false);
   const [naClients, setNaClients] = useState([]);
@@ -61,6 +69,15 @@ export default function Dashboard() {
     if (!session?.access_token) return;
     api.getDashboard(session.access_token).then(setStats).catch(() => {});
   }, [session]);
+
+  // Load Holly's discount codes once (admin only) to populate the apply-discount
+  // picker in the appointment modal.
+  useEffect(() => {
+    if (!session?.access_token || !isAdmin) return;
+    api.getDiscounts(session.access_token)
+      .then(d => setDiscounts(d.discounts || d || []))
+      .catch(() => {});
+  }, [session, isAdmin]);
 
   async function openNewAppt() {
     const token = session?.access_token;
@@ -153,7 +170,31 @@ export default function Dashboard() {
     setSelectedAppt(appt);
     setFeeResult(null);
     setFeeType('no_show');
+    setDiscResult(null);
+    setApplyCode(appt.discount_code || '');
     setModalOpen(true);
+  }
+
+  async function applyDiscount(code) {
+    if (!selectedAppt) return;
+    setDiscBusy(true);
+    setDiscResult(null);
+    try {
+      const res = await api.applyAppointmentDiscount(selectedAppt.id, code || null, session.access_token);
+      setAppointments(a => a.map(x => x.id === selectedAppt.id ? { ...x, ...res.appointment } : x));
+      setSelectedAppt(s => s ? { ...s, ...res.appointment } : s);
+      setApplyCode(res.discount_code || '');
+      setDiscResult({
+        ok: true,
+        message: res.discount_code
+          ? `Applied ${res.discount_code} (${res.label}). New total $${(res.total_cents / 100).toFixed(2)}.`
+          : `Discount removed. Total $${(res.total_cents / 100).toFixed(2)}.`,
+      });
+    } catch (e) {
+      setDiscResult({ ok: false, message: e.message || 'Could not apply discount.' });
+    } finally {
+      setDiscBusy(false);
+    }
   }
 
   async function chargeFee() {
@@ -364,6 +405,43 @@ export default function Dashboard() {
                 {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
               </select>
             </div>
+
+            {/* Apply a discount — lowers the appointment total at checkout.
+                Eligibility-gated "salon only" codes can only be applied here. */}
+            {isAdmin && (
+              <>
+                <div className="divider" />
+                <div>
+                  <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Apply a discount</label>
+                  {selectedAppt.discount_code && (
+                    <p style={{ fontSize: 13, color: '#10B981', marginBottom: 8 }}>
+                      {selectedAppt.discount_code} applied.
+                    </p>
+                  )}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <select className="form-select" value={applyCode} onChange={e => setApplyCode(e.target.value)} disabled={discBusy} style={{ flex: 1 }}>
+                      <option value="">— No discount —</option>
+                      {discounts.filter(d => d.active !== false).map(d => (
+                        <option key={d.id} value={d.code}>
+                          {d.code} ({d.type === 'percent' ? `${d.value}% off` : `$${(d.value / 100).toFixed(2)} off`}){d.admin_only ? ' • salon only' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <button onClick={() => applyDiscount(applyCode)} disabled={discBusy} style={styles.chargeFeeBtn}>
+                      {discBusy ? 'Saving…' : 'Apply'}
+                    </button>
+                  </div>
+                  {discResult && (
+                    <p style={{ fontSize: 13, marginTop: 8, color: discResult.ok ? '#10B981' : '#EF4444' }}>
+                      {discResult.message}
+                    </p>
+                  )}
+                  <p style={{ fontSize: 12, color: '#9A938A', marginTop: 8, lineHeight: 1.5 }}>
+                    Updates the appointment total. Pick “No discount” and Apply to remove it. Then take payment on your POS for the new total.
+                  </p>
+                </div>
+              </>
+            )}
 
             {/* No-show / late-cancel fee — charges the client's saved card */}
             {isAdmin && selectedAppt.client?.id && (

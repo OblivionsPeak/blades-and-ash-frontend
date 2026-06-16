@@ -40,7 +40,7 @@ export default function Admin() {
   const [discounts, setDiscounts] = useState([]);
   const [discModal, setDiscModal] = useState(false);
   const [editDisc, setEditDisc] = useState(null);
-  const [discForm, setDiscForm] = useState({ code: '', type: 'percent', value: 10, scope: 'all', expires_at: '', active: true });
+  const [discForm, setDiscForm] = useState({ code: '', type: 'percent', value: 10, scope: 'all', expires_at: '', active: true, admin_only: false });
 
   // Bulk import
   const [importModal, setImportModal] = useState(false);
@@ -178,7 +178,7 @@ export default function Admin() {
 
   function openNewDisc() {
     setEditDisc(null);
-    setDiscForm({ code: '', type: 'percent', value: 10, scope: 'all', expires_at: '', active: true });
+    setDiscForm({ code: '', type: 'percent', value: 10, scope: 'all', expires_at: '', active: true, admin_only: false });
     setDiscModal(true);
   }
   function openEditDisc(d) {
@@ -191,6 +191,7 @@ export default function Admin() {
       scope: d.scope || 'all',
       expires_at: d.expires_at ? d.expires_at.slice(0, 10) : '',
       active: d.active !== false,
+      admin_only: d.admin_only === true,
     });
     setDiscModal(true);
   }
@@ -208,6 +209,7 @@ export default function Admin() {
       scope: discForm.scope || 'all',
       expires_at: discForm.expires_at || null,
       active: discForm.active,
+      admin_only: discForm.admin_only === true,
     };
     try {
       if (editDisc) await api.updateDiscount(editDisc.id, body, token);
@@ -660,7 +662,10 @@ export default function Admin() {
                 </div>
                 {discounts.map(d => (
                   <div key={d.id} className="admin-disc-inner" style={styles.discRow}>
-                    <span style={styles.svcName}>{d.code}</span>
+                    <span style={styles.svcName}>
+                      {d.code}
+                      {d.admin_only && <span style={styles.pillAdminOnly} title="Customers cannot enter this code — apply it from an appointment at checkout.">Salon only</span>}
+                    </span>
                     <span style={styles.cell}>{fmtDiscValue(d)}</span>
                     <span style={styles.cell}>{d.scope === 'all' || !d.scope ? 'All services' : d.scope}</span>
                     <span style={styles.cell}>{d.expires_at ? d.expires_at.slice(0, 10) : 'Never'}</span>
@@ -881,6 +886,15 @@ export default function Admin() {
               onChange={e => setDiscForm(f => ({ ...f, active: e.target.checked }))} />
             Active
           </label>
+          <label style={styles.checkLabel}>
+            <input type="checkbox" checked={discForm.admin_only} style={{ accentColor: '#C8A24B' }}
+              onChange={e => setDiscForm(f => ({ ...f, admin_only: e.target.checked }))} />
+            Salon only (eligibility-gated)
+          </label>
+          <p style={{ fontSize: 12, color: '#9A938A', marginTop: -8 }}>
+            For codes like military or first-responder discounts: customers can't enter this code
+            at booking. You apply it to the appointment yourself at checkout, after verifying eligibility.
+          </p>
           <button onClick={saveDisc} style={styles.saveAvailBtn}>Save Discount</button>
         </div>
       </Modal>
@@ -900,6 +914,7 @@ const styles = {
   discRow: { display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr 1fr 0.9fr 1fr', padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
   pillActive: { fontSize: 12, color: '#9ad9b4', border: '1px solid rgba(154,217,180,0.4)', borderRadius: 999, padding: '3px 10px' },
   pillInactive: { fontSize: 12, color: '#9A938A', border: '1px solid #2A2A2A', borderRadius: 999, padding: '3px 10px' },
+  pillAdminOnly: { fontSize: 11, color: '#C8A24B', border: '1px solid rgba(200,162,75,0.4)', borderRadius: 999, padding: '2px 8px', marginLeft: 8, whiteSpace: 'nowrap' },
   svcName: { fontWeight: 600, fontSize: 15 },
   svcDesc: { fontSize: 12, color: '#9A938A', marginTop: 2 },
   cell: { fontSize: 14, color: '#9A938A' },

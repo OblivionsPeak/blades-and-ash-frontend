@@ -36,6 +36,7 @@ export const api = {
   cancelAppointment: (id, token) => apiFetch(`/api/appointments/${id}`, { method: 'DELETE' }, token),
   rescheduleAppointment: (id, body, token) => apiFetch(`/api/appointments/${id}/reschedule`, { method: 'PUT', body: JSON.stringify(body) }, token),
   chargeFee: (id, body, token) => apiFetch(`/api/appointments/${id}/charge-fee`, { method: 'POST', body: JSON.stringify(body) }, token),
+  applyAppointmentDiscount: (id, discountCode, token) => apiFetch(`/api/appointments/${id}/apply-discount`, { method: 'POST', body: JSON.stringify({ discount_code: discountCode }) }, token),
 
   createPaymentIntent: (body, token) => apiFetch('/api/payments/create-intent', { method: 'POST', body: JSON.stringify(body) }, token),
 
