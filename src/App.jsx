@@ -13,6 +13,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Profile = lazy(() => import('./pages/Profile'));
+const Pay = lazy(() => import('./pages/Pay'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/pay/:id" element={<Pay />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

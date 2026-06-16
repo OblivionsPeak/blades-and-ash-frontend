@@ -146,7 +146,7 @@ export default function Profile() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {upcoming.map(a => <AppointmentCard key={a.id} appointment={a} showStaff onCancel={handleCancel} onReschedule={openReschedule} />)}
+            {upcoming.map(a => <AppointmentCard key={a.id} appointment={a} showStaff onCancel={handleCancel} onReschedule={openReschedule} onPay={() => navigate(`/pay/${a.id}`)} />)}
           </div>
         )}
 

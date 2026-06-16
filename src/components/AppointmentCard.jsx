@@ -2,11 +2,13 @@ import { format } from 'date-fns';
 import StatusBadge from './StatusBadge';
 import { apptServiceNames } from '../utils';
 
-export default function AppointmentCard({ appointment, onCancel, onReschedule, showStaff }) {
+export default function AppointmentCard({ appointment, onCancel, onReschedule, onPay, showStaff }) {
   const start = new Date(appointment.start_time);
   const end = new Date(appointment.end_time);
   const isPast = end < new Date();
   const canManage = !isPast && !['cancelled', 'completed'].includes(appointment.status);
+  const balanceDue = (appointment.total_cents || 0) - (appointment.amount_paid_cents || 0);
+  const canPay = canManage && onPay && balanceDue > 0;
 
   return (
     <div style={styles.card}>
@@ -35,8 +37,13 @@ export default function AppointmentCard({ appointment, onCancel, onReschedule, s
         {appointment.client_notes && (
           <p style={styles.notes}>"{appointment.client_notes}"</p>
         )}
-        {canManage && (onReschedule || onCancel) && (
+        {canManage && (onReschedule || onCancel || canPay) && (
           <div style={styles.actions}>
+            {canPay && (
+              <button onClick={() => onPay(appointment)} style={styles.payBtn}>
+                Pay ${(balanceDue / 100).toFixed(2)}
+              </button>
+            )}
             {onReschedule && (
               <button onClick={() => onReschedule(appointment)} style={styles.rescheduleBtn}>
                 Reschedule
@@ -75,7 +82,12 @@ const styles = {
   right: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 },
   price: { fontSize: 16, fontWeight: 700, color: '#EDE7DB' },
   notes: { fontSize: 13, color: '#9A938A', fontStyle: 'italic', marginTop: 8 },
-  actions: { display: 'flex', gap: 10, marginTop: 12 },
+  actions: { display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' },
+  payBtn: {
+    padding: '6px 18px', borderRadius: 999,
+    background: '#C8A24B', border: 'none', color: '#0E0E10',
+    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+  },
   rescheduleBtn: {
     padding: '6px 16px', borderRadius: 999,
     background: 'none', border: '1px solid #2A2A2A', color: '#C8A24B',
