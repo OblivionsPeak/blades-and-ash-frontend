@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [applyCode, setApplyCode] = useState('');
   const [discBusy, setDiscBusy] = useState(false);
   const [discResult, setDiscResult] = useState(null); // { ok, message }
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // New-appointment modal (book on behalf of a client)
   const [newApptOpen, setNewApptOpen] = useState(false);
@@ -172,7 +173,22 @@ export default function Dashboard() {
     setFeeType('no_show');
     setDiscResult(null);
     setApplyCode(appt.discount_code || '');
+    setLinkCopied(false);
     setModalOpen(true);
+  }
+
+  async function copyPayLink() {
+    if (!selectedAppt) return;
+    const url = `${window.location.origin}/pay/${selectedAppt.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Clipboard API unavailable (e.g. insecure context) — fall back to prompt.
+      window.prompt('Copy this payment link:', url);
+      return;
+    }
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2500);
   }
 
   async function applyDiscount(code) {
@@ -437,7 +453,13 @@ export default function Dashboard() {
                     </p>
                   )}
                   <p style={{ fontSize: 12, color: '#9A938A', marginTop: 8, lineHeight: 1.5 }}>
-                    Updates the appointment total. Pick “No discount” and Apply to remove it. Then take payment on your POS for the new total.
+                    Updates the appointment total. Pick “No discount” and Apply to remove it.
+                  </p>
+                  <button onClick={copyPayLink} style={styles.copyLinkBtn}>
+                    {linkCopied ? '✓ Link copied' : 'Copy payment link'}
+                  </button>
+                  <p style={{ fontSize: 12, color: '#9A938A', marginTop: 6, lineHeight: 1.5 }}>
+                    Text or email this link to the client — they sign in and pay the current total online.
                   </p>
                 </div>
               </>
@@ -534,6 +556,11 @@ const styles = {
     padding: '0 20px', borderRadius: 8, background: '#0E0E10', color: '#C8A24B',
     border: '1px solid #2A2A2A', fontSize: 13, fontWeight: 700, cursor: 'pointer',
     whiteSpace: 'nowrap', fontFamily: "'Jost', sans-serif",
+  },
+  copyLinkBtn: {
+    marginTop: 10, padding: '8px 16px', borderRadius: 8, background: 'none', color: '#C8A24B',
+    border: '1px solid #2A2A2A', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+    fontFamily: "'Jost', sans-serif",
   },
   dayTitle: { fontFamily: "'Cormorant', serif", fontSize: 24, color: '#EDE7DB' },
   dayCount: { fontSize: 13, color: '#9A938A' },

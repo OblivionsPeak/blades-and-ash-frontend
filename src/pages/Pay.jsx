@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { format } from 'date-fns';
@@ -18,6 +18,7 @@ export default function Pay() {
   const { id } = useParams();
   const { user, session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +35,8 @@ export default function Pay() {
     && balanceDue > 0;
 
   useEffect(() => {
-    if (!user) { navigate('/login'); return; }
+    // Preserve the destination so a texted pay link returns here after sign-in.
+    if (!user) { navigate('/login', { state: { from: location } }); return; }
     if (!session?.access_token) return;
     api.getAppointment(id, session.access_token)
       .then((data) => setAppointment(data.appointment || data))
