@@ -16,7 +16,7 @@
     <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" stroke-width="3"/>
   </g>
 
-  <text x="600" y="430" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="600" font-size="82" letter-spacing="10" fill="#EDE7DB">BLADES<tspan dx="34" font-style="italic" fill="#C8A24B">&amp;</tspan><tspan dx="34">ASH</tspan></text>
+  <text x="600" y="430" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="600" font-size="82" letter-spacing="8" fill="#EDE7DB">BLADES <tspan font-style="italic" fill="#C8A24B">&amp;</tspan> ASH</text>
   <text x="600" y="478" text-anchor="middle" font-family="Arial, sans-serif" font-weight="400" font-size="22" letter-spacing="16" fill="#9A938A">HAIR STUDIO</text>
   <text x="600" y="556" text-anchor="middle" font-family="Georgia, serif" font-style="italic" font-size="26" fill="#C8A24B">Sharp craft. Quiet luxury.</text>
 </svg>
