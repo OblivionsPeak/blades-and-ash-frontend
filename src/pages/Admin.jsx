@@ -21,6 +21,19 @@ function formatDateRange(start, end) {
   return `${s} – ${e}`;
 }
 
+// "13:30:00" / "13:30" -> "1:30 PM"
+function formatTime(t) {
+  if (!t) return '';
+  const [h, m] = String(t).split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+// Whole-day block -> "All day"; partial block -> "1:30 PM – 3:00 PM"
+function formatTimeOffWindow(b) {
+  if (!b.start_time || !b.end_time) return 'All day';
+  return `${formatTime(b.start_time)} – ${formatTime(b.end_time)}`;
+}
+
 export default function Admin() {
   const { user, profile, session } = useAuth();
   const navigate = useNavigate();
@@ -62,7 +75,7 @@ export default function Admin() {
 
   // Time off / blocked dates for the selected staff member
   const [timeOff, setTimeOff] = useState([]);
-  const [toForm, setToForm] = useState({ start_date: '', end_date: '', reason: '' });
+  const [toForm, setToForm] = useState({ start_date: '', end_date: '', start_time: '', end_time: '', reason: '' });
   const [toErr, setToErr] = useState('');
 
   // Staff services
@@ -137,7 +150,7 @@ export default function Admin() {
     api.getStaffTimeOff(selectedStaff.id, session.access_token)
       .then(data => setTimeOff(data || []))
       .catch(() => setTimeOff([]));
-    setToForm({ start_date: '', end_date: '', reason: '' });
+    setToForm({ start_date: '', end_date: '', start_time: '', end_time: '', reason: '' });
     setToErr('');
   }, [selectedStaff]);
 
@@ -379,13 +392,21 @@ export default function Admin() {
 
   async function addTimeOff() {
     setToErr('');
-    const { start_date, end_date, reason } = toForm;
+    const { start_date, end_date, start_time, end_time, reason } = toForm;
     if (!start_date || !end_date) { setToErr('Pick a start and end date.'); return; }
     if (end_date < start_date) { setToErr('End date must be on or after the start date.'); return; }
+    // Time window is optional (blank = whole day) but must be complete if used.
+    if ((!!start_time) !== (!!end_time)) { setToErr('Enter both a start and end time, or leave both blank for a whole day.'); return; }
+    if (start_time && end_time <= start_time) { setToErr('End time must be after the start time.'); return; }
     try {
-      const block = await api.addStaffTimeOff(selectedStaff.id, { start_date, end_date, reason: reason.trim() || null }, session.access_token);
+      const block = await api.addStaffTimeOff(selectedStaff.id, {
+        start_date, end_date,
+        start_time: start_time || null,
+        end_time: end_time || null,
+        reason: reason.trim() || null,
+      }, session.access_token);
       setTimeOff(list => [...list, block].sort((a, b) => a.start_date.localeCompare(b.start_date)));
-      setToForm({ start_date: '', end_date: '', reason: '' });
+      setToForm({ start_date: '', end_date: '', start_time: '', end_time: '', reason: '' });
     } catch (e) {
       setToErr(e.message || 'Could not add that time off.');
     }
@@ -660,7 +681,7 @@ export default function Admin() {
                 <div style={{ marginTop: 36, borderTop: '1px solid #2A2A2A', paddingTop: 24 }}>
                   <h3 style={{ fontFamily: "'Cormorant', serif", fontSize: 20, color: '#D8BC7E', margin: '0 0 6px' }}>Time Off / Blocked Dates</h3>
                   <p style={{ color: '#9A938A', fontSize: 13.5, margin: '0 0 16px', lineHeight: 1.5 }}>
-                    Block whole days (vacation, holidays). Blocked dates override the weekly schedule — no bookings can be made on them.
+                    Block whole days (vacation, holidays) or just part of a day. Leave the times blank to block the whole day; add a start and end time to block only that window. Blocked times override the weekly schedule — no bookings can be made during them.
                   </p>
 
                   {timeOff.length > 0 && (
@@ -669,6 +690,7 @@ export default function Admin() {
                         <div key={b.id} style={styles.timeOffRow}>
                           <div>
                             <span style={{ fontWeight: 600 }}>{formatDateRange(b.start_date, b.end_date)}</span>
+                            <span style={{ color: '#D8BC7E', fontSize: 13, marginLeft: 8 }}>{formatTimeOffWindow(b)}</span>
                             {b.reason && <span style={{ color: '#9A938A', fontSize: 13, marginLeft: 8 }}>· {b.reason}</span>}
                           </div>
                           <button onClick={() => removeTimeOff(b.id)} style={styles.timeOffRemove}>Remove</button>
@@ -688,12 +710,22 @@ export default function Admin() {
                       <input type="date" className="form-input" style={{ width: 160 }} value={toForm.end_date} min={toForm.start_date || undefined}
                         onChange={e => setToForm(f => ({ ...f, end_date: e.target.value }))} />
                     </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">Start time <span style={{ color: '#6E6A63' }}>(optional)</span></label>
+                      <input type="time" className="form-input" style={{ width: 130 }} value={toForm.start_time}
+                        onChange={e => setToForm(f => ({ ...f, start_time: e.target.value }))} />
+                    </div>
+                    <div className="form-group" style={{ margin: 0 }}>
+                      <label className="form-label">End time <span style={{ color: '#6E6A63' }}>(optional)</span></label>
+                      <input type="time" className="form-input" style={{ width: 130 }} value={toForm.end_time} min={toForm.start_time || undefined}
+                        onChange={e => setToForm(f => ({ ...f, end_time: e.target.value }))} />
+                    </div>
                     <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 160 }}>
                       <label className="form-label">Reason (optional)</label>
                       <input type="text" className="form-input" placeholder="Vacation" value={toForm.reason}
                         onChange={e => setToForm(f => ({ ...f, reason: e.target.value }))} />
                     </div>
-                    <button onClick={addTimeOff} style={styles.addBtn}>Block Dates</button>
+                    <button onClick={addTimeOff} style={styles.addBtn}>Add Block</button>
                   </div>
                   {toErr && <p style={{ color: '#f8a3a3', fontSize: 13, marginTop: 8 }}>{toErr}</p>}
                 </div>
