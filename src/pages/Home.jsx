@@ -8,10 +8,12 @@ import StaffCard from '../components/StaffCard';
 export default function Home() {
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
+  const [gallery, setGallery] = useState([]);
 
   useEffect(() => {
     api.getServices().then(setServices).catch(() => {});
     api.getStaff().then(setStaff).catch(() => {});
+    api.getGallery().then(setGallery).catch(() => {});
   }, []);
 
   return (
@@ -62,6 +64,23 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Gallery — only renders once the salon has uploaded photos */}
+      {gallery.length > 0 && (
+        <section style={{ ...styles.section, paddingTop: 0 }}>
+          <div className="container">
+            <div style={styles.sectionHead}>
+              <span style={styles.sectionLabel}>OUR WORK</span>
+              <h2 style={styles.sectionTitle}>Recent Styles</h2>
+            </div>
+            <div style={styles.galleryGrid}>
+              {gallery.slice(0, 8).map(p => (
+                <img key={p.name} src={p.url} alt="Recent salon work" loading="lazy" style={styles.galleryImg} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Staff */}
       {staff.length > 0 && (
@@ -120,6 +139,15 @@ const styles = {
   categoryHeader: {
     fontFamily: "'Cormorant', serif", fontSize: 26, color: '#C8A24B',
     margin: '40px 0 20px', fontWeight: 600, textAlign: 'center',
+  },
+  galleryGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+    gap: 14,
+  },
+  galleryImg: {
+    width: '100%', aspectRatio: '1', objectFit: 'cover',
+    borderRadius: 12, border: '1px solid #2A2A2A', display: 'block',
   },
   ctaStrip: { background: '#0E0E10', padding: '80px 0', borderTop: '1px solid #2A2A2A' },
   ctaTitle: { fontFamily: "'Cormorant', serif", fontSize: 36, marginBottom: 12 },

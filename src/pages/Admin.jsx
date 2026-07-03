@@ -89,6 +89,11 @@ export default function Admin() {
   // Card-on-file modal: which client, the SetupIntent secret, saved cards
   const [cardModal, setCardModal] = useState(null); // { client, clientSecret, cards, loading }
 
+  // Gallery tab
+  const [gallery, setGallery] = useState([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [uploadingCount, setUploadingCount] = useState(0);
+
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     if (profile?.role !== 'admin') { navigate('/dashboard'); return; }
@@ -115,6 +120,67 @@ export default function Admin() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'payments') loadPayments(); }, [tab, payFrom, payTo, session]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (tab === 'gallery') loadGallery(); }, [tab]);
+
+  async function loadGallery() {
+    setGalleryLoading(true);
+    try {
+      setGallery(await api.getGallery());
+    } catch (e) {
+      notify(e.message || 'Could not load the gallery.');
+    } finally {
+      setGalleryLoading(false);
+    }
+  }
+
+  // Shrink a photo in the browser before upload (max 1600px, JPEG) so phone
+  // pictures don't push multi-MB originals over a salon Wi-Fi connection.
+  async function resizeToJpeg(file, maxDim = 1600, quality = 0.85) {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close?.();
+    return new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Could not process image'))), 'image/jpeg', quality)
+    );
+  }
+
+  async function uploadGalleryFiles(fileList) {
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+    setUploadingCount(files.length);
+    let failed = 0;
+    for (const file of files) {
+      try {
+        const blob = await resizeToJpeg(file);
+        await api.uploadGalleryPhoto(blob, session?.access_token);
+      } catch {
+        failed += 1;
+      } finally {
+        setUploadingCount((n) => n - 1);
+      }
+    }
+    await loadGallery();
+    notify(failed === 0
+      ? `${files.length} photo${files.length > 1 ? 's' : ''} added to the gallery.`
+      : `${files.length - failed} added, ${failed} failed — try that one again.`);
+  }
+
+  async function deleteGalleryPhoto(name) {
+    if (!window.confirm('Remove this photo from the website?')) return;
+    try {
+      await api.deleteGalleryPhoto(name, session?.access_token);
+      setGallery((g) => g.filter((p) => p.name !== name));
+      notify('Photo removed.');
+    } catch (e) {
+      notify(e.message || 'Could not remove the photo.');
+    }
+  }
 
   async function refreshTeam() {
     const token = session?.access_token;
@@ -502,6 +568,7 @@ export default function Admin() {
           <button className={`tab-btn ${tab === 'availability' ? 'active' : ''}`} onClick={() => setTab('availability')}>Availability</button>
           <button className={`tab-btn ${tab === 'discounts' ? 'active' : ''}`} onClick={() => setTab('discounts')}>Discounts</button>
           <button className={`tab-btn ${tab === 'payments' ? 'active' : ''}`} onClick={() => setTab('payments')}>Payments</button>
+          <button className={`tab-btn ${tab === 'gallery' ? 'active' : ''}`} onClick={() => setTab('gallery')}>Gallery</button>
         </div>
 
         {/* Services Tab */}
@@ -826,6 +893,53 @@ export default function Admin() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Gallery Tab */}
+        {tab === 'gallery' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
+              <p style={{ fontSize: 14, color: '#9A938A', margin: 0 }}>
+                Photos here appear in the "Our Work" section of the website, newest first.
+              </p>
+              <label style={{ ...styles.addBtn, cursor: 'pointer', opacity: uploadingCount > 0 ? 0.6 : 1 }}>
+                {uploadingCount > 0 ? `Uploading ${uploadingCount}…` : '+ Add Photos'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={uploadingCount > 0}
+                  style={{ display: 'none' }}
+                  onChange={e => { uploadGalleryFiles(e.target.files); e.target.value = ''; }}
+                />
+              </label>
+            </div>
+            {galleryLoading ? (
+              <div className="loading-center"><div className="spinner" /></div>
+            ) : gallery.length === 0 ? (
+              <p style={{ fontSize: 14, color: '#9A938A', padding: '24px 0' }}>
+                No photos yet. Tap "Add Photos" and pick your favorite work — they'll show up on the home page right away.
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginTop: 16 }}>
+                {gallery.map(p => (
+                  <div key={p.name} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid #2A2A2A', aspectRatio: '1' }}>
+                    <img src={p.url} alt="Gallery" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <button
+                      onClick={() => deleteGalleryPhoto(p.name)}
+                      title="Remove photo"
+                      style={{
+                        position: 'absolute', top: 6, right: 6,
+                        background: 'rgba(14,14,16,0.75)', color: '#fff',
+                        border: 'none', borderRadius: 6, width: 28, height: 28,
+                        cursor: 'pointer', fontSize: 14, lineHeight: 1,
+                      }}
+                    >✕</button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

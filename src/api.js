@@ -47,6 +47,22 @@ export const api = {
   deleteDiscount: (id, token) => apiFetch(`/api/discounts/${id}`, { method: 'DELETE' }, token),
   validateDiscount: (body, token) => apiFetch('/api/discounts/validate', { method: 'POST', body: JSON.stringify(body) }, token),
 
+  getGallery: () => apiFetch('/api/gallery'),
+  deleteGalleryPhoto: (name, token) => apiFetch(`/api/gallery/${name}`, { method: 'DELETE' }, token),
+  // Uploads send the raw image bytes, not JSON — bypass apiFetch's JSON headers.
+  uploadGalleryPhoto: async (blob, token) => {
+    const res = await fetch(`${BASE}/api/gallery`, {
+      method: 'POST',
+      headers: { 'Content-Type': blob.type || 'image/jpeg', Authorization: `Bearer ${token}` },
+      body: blob,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Upload failed');
+    }
+    return res.json();
+  },
+
   getDashboard: (token) => apiFetch('/api/admin/dashboard', {}, token),
   getPayments: (token, params = {}) => apiFetch(`/api/admin/payments?${new URLSearchParams(params)}`, {}, token),
   getClients: (token) => apiFetch('/api/admin/clients', {}, token),
