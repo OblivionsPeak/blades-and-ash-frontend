@@ -43,6 +43,16 @@ export default function Dashboard() {
   const [recBusy, setRecBusy] = useState(false);
   const [recResult, setRecResult] = useState(null); // { ok, message }
 
+  // Reschedule (admin/staff, inside the appointment modal): pick a new date,
+  // load that day's open slots for the same stylist + services, pick one.
+  const [rsOpen, setRsOpen] = useState(false);
+  const [rsDate, setRsDate] = useState('');
+  const [rsSlots, setRsSlots] = useState([]);
+  const [rsSlotsLoading, setRsSlotsLoading] = useState(false);
+  const [rsSlot, setRsSlot] = useState('');
+  const [rsBusy, setRsBusy] = useState(false);
+  const [rsResult, setRsResult] = useState(null); // { ok, message }
+
   // New-appointment modal (book on behalf of a client)
   const [newApptOpen, setNewApptOpen] = useState(false);
   const [naClients, setNaClients] = useState([]);
@@ -174,8 +184,49 @@ export default function Dashboard() {
     setUpdatingStatus(false);
   }
 
+  // Load open slots when a reschedule date is picked.
+  useEffect(() => {
+    if (!rsOpen || !rsDate || !selectedAppt) return;
+    const staffId = selectedAppt.staff?.id || selectedAppt.staff_id;
+    const serviceIds = apptItems(selectedAppt).map(i => i.service_id).filter(Boolean);
+    if (!staffId || serviceIds.length === 0) return;
+    setRsSlotsLoading(true);
+    setRsSlot('');
+    api.getAvailability({ staff_id: staffId, service_ids: serviceIds.join(','), date: rsDate })
+      .then(data => setRsSlots(Array.isArray(data) ? data : (data.slots || [])))
+      .catch(() => setRsSlots([]))
+      .finally(() => setRsSlotsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rsOpen, rsDate]);
+
+  async function submitReschedule() {
+    if (!selectedAppt || !rsSlot) return;
+    setRsBusy(true);
+    setRsResult(null);
+    try {
+      const res = await api.rescheduleAppointment(selectedAppt.id, { start_time: rsSlot }, session.access_token);
+      setAppointments(a => a.map(x => x.id === selectedAppt.id ? { ...x, ...res.appointment } : x));
+      setSelectedAppt(s => s ? { ...s, ...res.appointment } : s);
+      setRsResult({ ok: true, message: 'Rescheduled — the client keeps their booking, reminders follow the new time.' });
+      setRsOpen(false);
+      setRsDate('');
+      setRsSlots([]);
+      // Jump the calendar to the new day so the moved appointment is visible.
+      setSelectedDate(new Date(res.appointment.start_time));
+    } catch (e) {
+      setRsResult({ ok: false, message: e.message || 'Could not reschedule — that time may have just been taken.' });
+    } finally {
+      setRsBusy(false);
+    }
+  }
+
   function openAppt(appt) {
     setSelectedAppt(appt);
+    setRsOpen(false);
+    setRsDate('');
+    setRsSlots([]);
+    setRsSlot('');
+    setRsResult(null);
     setFeeResult(null);
     setFeeType('no_show');
     setDiscResult(null);
@@ -456,6 +507,67 @@ export default function Dashboard() {
                 {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
               </select>
             </div>
+
+            {/* Reschedule — same stylist and services, new day/time. */}
+            {!['cancelled', 'completed', 'no_show'].includes(selectedAppt.status) && (
+              <>
+                <div className="divider" />
+                <div>
+                  <label className="form-label" style={{ marginBottom: 8, display: 'block' }}>Reschedule</label>
+                  {rsResult && (
+                    <p style={{ fontSize: 13, color: rsResult.ok ? '#10B981' : '#EF4444', marginBottom: 8 }}>
+                      {rsResult.message}
+                    </p>
+                  )}
+                  {!rsOpen ? (
+                    <button onClick={() => { setRsOpen(true); setRsResult(null); }} style={{ ...styles.chargeFeeBtn, width: '100%', padding: '10px 20px' }}>
+                      Move to a different time…
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <input
+                        type="date"
+                        className="form-input"
+                        value={rsDate}
+                        min={format(new Date(), 'yyyy-MM-dd')}
+                        onChange={e => setRsDate(e.target.value)}
+                      />
+                      {rsDate && (
+                        rsSlotsLoading ? (
+                          <p style={{ fontSize: 13, color: '#9A938A', margin: 0 }}>Checking open times…</p>
+                        ) : rsSlots.length === 0 ? (
+                          <p style={{ fontSize: 13, color: '#9A938A', margin: 0 }}>No open times that day — try another date.</p>
+                        ) : (
+                          <select className="form-select" value={rsSlot} onChange={e => setRsSlot(e.target.value)}>
+                            <option value="">— Pick a new time —</option>
+                            {rsSlots.map(s => {
+                              const v = typeof s === 'string' ? s : s.start_time || s.start;
+                              return <option key={v} value={v}>{format(new Date(v), 'h:mm a')}</option>;
+                            })}
+                          </select>
+                        )
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button
+                          onClick={submitReschedule}
+                          disabled={!rsSlot || rsBusy}
+                          style={{
+                            ...styles.chargeFeeBtn, flex: 1, padding: '10px 20px',
+                            background: '#C8A24B', color: '#0E0E10', border: 'none',
+                            opacity: !rsSlot || rsBusy ? 0.5 : 1,
+                          }}
+                        >
+                          {rsBusy ? 'Moving…' : 'Confirm new time'}
+                        </button>
+                        <button onClick={() => { setRsOpen(false); setRsDate(''); }} disabled={rsBusy} style={{ ...styles.chargeFeeBtn, padding: '10px 20px' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Apply a discount — lowers the appointment total at checkout.
                 Eligibility-gated "salon only" codes can only be applied here. */}

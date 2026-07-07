@@ -31,9 +31,14 @@ export default function Book() {
 
   const [step, setStep] = useState(0);
   const [services, setServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesSlow, setServicesSlow] = useState(false);
+  const [servicesError, setServicesError] = useState(false);
   const [staff, setStaff] = useState([]);
   const [slots, setSlots] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  // Which service categories are expanded (mobile-friendly accordion).
+  const [openCats, setOpenCats] = useState(null); // null until services load
 
   const [selectedServices, setSelectedServices] = useState([]);
   const [selectedStaff, setSelectedStaff] = useState(null);
@@ -64,7 +69,7 @@ export default function Book() {
   const serviceIds = selectedServices.map(s => s.id);
 
   useEffect(() => {
-    api.getServices().then(setServices).catch(() => {});
+    loadServices();
     api.getStaff().then(data => {
       setStaff(data);
       // Solo-stylist mode: pre-select the only stylist so the summary shows
@@ -72,6 +77,18 @@ export default function Book() {
       if (data.length === 1) setSelectedStaff(data[0]);
     }).catch(() => {});
   }, []);
+
+  function loadServices() {
+    setServicesLoading(true);
+    setServicesError(false);
+    setServicesSlow(false);
+    // The backend sleeps when idle — past ~3s, reassure instead of looking broken.
+    const slowTimer = setTimeout(() => setServicesSlow(true), 3000);
+    api.getServices()
+      .then(setServices)
+      .catch(() => setServicesError(true))
+      .finally(() => { clearTimeout(slowTimer); setServicesLoading(false); });
+  }
 
   // With a single stylist there's nothing to choose — hide the step. It comes
   // back automatically as soon as a second staff member exists.
@@ -82,6 +99,24 @@ export default function Book() {
   const currentStep = stepKeys[step];
 
   const serviceGroups = groupServicesByCategory(services);
+
+  // First category starts expanded, the rest collapsed — keeps the list
+  // scannable on phones. A lone/uncategorized group is always open.
+  useEffect(() => {
+    // services.length guard matters: with no services yet, groupServicesByCategory
+    // still returns one empty null-category group, which must not lock in state.
+    if (openCats !== null || services.length === 0) return;
+    setOpenCats(new Set([serviceGroups[0].category || 'all']));
+  }, [services, serviceGroups, openCats]);
+
+  function toggleCat(name) {
+    setOpenCats(prev => {
+      const next = new Set(prev || []);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!selectedDate || selectedServices.length === 0) return;
@@ -239,17 +274,59 @@ export default function Book() {
             <div>
               <h2 style={styles.stepTitle}>Choose Your Services</h2>
               <p style={{ color: '#9A938A', fontSize: 14, marginTop: 2 }}>Select one or more — they'll be booked in a single appointment.</p>
-              {serviceGroups.map(group => (
-                <div key={group.category || 'all'}>
-                  {group.category && <h3 style={styles.categoryHeader}>{group.category}</h3>}
-                  <div className="grid-2" style={{ marginTop: group.category ? 12 : 20 }}>
-                    {group.items.map(s => (
-                      <ServiceCard key={s.id} service={s} selected={selectedServices.some(x => x.id === s.id)}
-                        onSelect={toggleService} />
-                    ))}
-                  </div>
+
+              {servicesLoading && (
+                <div style={{ padding: '36px 0', textAlign: 'center' }}>
+                  <div className="spinner" style={{ margin: '0 auto' }} />
+                  {servicesSlow && (
+                    <p style={{ color: '#9A938A', fontSize: 14, marginTop: 16 }}>
+                      Waking up the booking system — this first load can take up to a minute. Thanks for your patience!
+                    </p>
+                  )}
                 </div>
-              ))}
+              )}
+              {servicesError && !servicesLoading && (
+                <div style={{ padding: '28px 0', textAlign: 'center' }}>
+                  <p style={{ color: '#9A938A', fontSize: 14 }}>We couldn't load the service list.</p>
+                  <button onClick={loadServices} style={styles.nextBtn}>Try again</button>
+                </div>
+              )}
+
+              {!servicesLoading && !servicesError && serviceGroups.map(group => {
+                const key = group.category || 'all';
+                const collapsible = serviceGroups.length > 1 && !!group.category;
+                const isOpen = !collapsible || (openCats ? openCats.has(key) : true);
+                const selCount = group.items.filter(s => selectedServices.some(x => x.id === s.id)).length;
+                return (
+                  <div key={key}>
+                    {collapsible ? (
+                      <button
+                        onClick={() => toggleCat(key)}
+                        aria-expanded={isOpen}
+                        style={styles.categoryToggle}
+                      >
+                        <span style={styles.categoryToggleName}>
+                          {group.category}
+                          <span style={styles.categoryCount}>
+                            {selCount > 0 ? `${selCount} selected · ` : ''}{group.items.length}
+                          </span>
+                        </span>
+                        <span style={{ ...styles.categoryChevron, transform: isOpen ? 'rotate(90deg)' : 'none' }}>›</span>
+                      </button>
+                    ) : (
+                      group.category && <h3 style={styles.categoryHeader}>{group.category}</h3>
+                    )}
+                    {isOpen && (
+                      <div className="grid-2" style={{ marginTop: 12, marginBottom: collapsible ? 6 : 0 }}>
+                        {group.items.map(s => (
+                          <ServiceCard key={s.id} service={s} selected={selectedServices.some(x => x.id === s.id)}
+                            onSelect={toggleService} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               {selectedServices.length > 0 && (
                 <div style={styles.selSummary}>
                   <span style={styles.selCount}>
@@ -591,6 +668,22 @@ const styles = {
     fontFamily: "'Cormorant', serif", fontSize: 20, color: '#D8BC7E',
     margin: '28px 0 0', fontWeight: 600, borderBottom: '1px solid #2A2A2A',
     paddingBottom: 8,
+  },
+  categoryToggle: {
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+    width: '100%', background: 'none', border: 'none', borderBottom: '1px solid #2A2A2A',
+    margin: '22px 0 0', padding: '0 2px 10px', cursor: 'pointer', textAlign: 'left',
+  },
+  categoryToggleName: {
+    fontFamily: "'Cormorant', serif", fontSize: 20, color: '#D8BC7E', fontWeight: 600,
+  },
+  categoryCount: {
+    fontFamily: "'Jost', sans-serif", fontSize: 12, color: '#9A938A',
+    marginLeft: 10, fontWeight: 400,
+  },
+  categoryChevron: {
+    color: '#C8A24B', fontSize: 22, lineHeight: 1, transition: 'transform 0.15s ease',
+    display: 'inline-block',
   },
   selSummary: {
     marginTop: 20, padding: '14px 18px', background: '#1E1E22', border: '1px solid #2A2A2A',

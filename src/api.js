@@ -47,6 +47,9 @@ export const api = {
   deleteDiscount: (id, token) => apiFetch(`/api/discounts/${id}`, { method: 'DELETE' }, token),
   validateDiscount: (body, token) => apiFetch('/api/discounts/validate', { method: 'POST', body: JSON.stringify(body) }, token),
 
+  getSettings: () => apiFetch('/api/settings'),
+  updateSettings: (body, token) => apiFetch('/api/settings', { method: 'PUT', body: JSON.stringify(body) }, token),
+
   getGallery: () => apiFetch('/api/gallery'),
   deleteGalleryPhoto: (name, token) => apiFetch(`/api/gallery/${name}`, { method: 'DELETE' }, token),
   // Uploads send the raw image bytes, not JSON — bypass apiFetch's JSON headers.

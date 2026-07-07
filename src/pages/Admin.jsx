@@ -6,6 +6,7 @@ import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import Modal from '../components/Modal';
 import CardSetupForm from '../components/CardSetupForm';
+import BusinessInfoTab from '../components/BusinessInfoTab';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -569,6 +570,7 @@ export default function Admin() {
           <button className={`tab-btn ${tab === 'discounts' ? 'active' : ''}`} onClick={() => setTab('discounts')}>Discounts</button>
           <button className={`tab-btn ${tab === 'payments' ? 'active' : ''}`} onClick={() => setTab('payments')}>Payments</button>
           <button className={`tab-btn ${tab === 'gallery' ? 'active' : ''}`} onClick={() => setTab('gallery')}>Gallery</button>
+          <button className={`tab-btn ${tab === 'business' ? 'active' : ''}`} onClick={() => setTab('business')}>Business Info</button>
         </div>
 
         {/* Services Tab */}
@@ -943,6 +945,11 @@ export default function Admin() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Business Info Tab */}
+        {tab === 'business' && (
+          <BusinessInfoTab token={session?.access_token} notify={notify} />
         )}
       </div>
 

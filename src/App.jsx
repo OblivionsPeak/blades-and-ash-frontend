@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import Nav from './components/Nav';
 import Footer from './components/Footer';
+import SeoSchema from './components/SeoSchema';
 
 // Code-split each route into its own chunk so the first load only ships the
 // shell + the landing page, not the whole app (Stripe, calendar, admin, etc.).
@@ -19,6 +20,7 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 export default function App() {
   return (
     <>
+      <SeoSchema />
       <Nav />
       <main className="page">
         <Suspense fallback={<div className="loading-center"><div className="spinner" /></div>}>
