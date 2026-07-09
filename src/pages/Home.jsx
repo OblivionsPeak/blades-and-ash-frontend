@@ -21,18 +21,9 @@ export default function Home() {
       {/* Hero */}
       <section style={styles.hero}>
         <div style={styles.heroInner}>
-          <svg width="58" height="70" viewBox="0 -16 100 124" style={{ display: 'block', margin: '0 auto 22px' }} aria-hidden="true">
-            <g fill="none" stroke="#C8A24B" strokeLinecap="round">
-              <path d="M50 4 C42 -5 60 -9 49 -16" strokeWidth="2" opacity="0.6" />
-              <path d="M50 5 C58 -1 47 -4 54 -12" strokeWidth="1.4" opacity="0.45" />
-            </g>
-            <path d="M63 2 C 55 18, 50 28, 47 39 C 41 60, 33 77, 23 90 L 30 91 C 41 77, 50 60, 54 40 C 57 28, 61 14, 63 2 Z" fill="#C8A24B" />
-            <path d="M37 2 C 45 18, 50 28, 53 39 C 59 60, 67 77, 77 90 L 70 91 C 59 77, 50 60, 46 40 C 43 28, 39 14, 37 2 Z" fill="#C8A24B" />
-            <path d="M35 60 Q50 65 65 60" fill="none" stroke="#C8A24B" strokeWidth="4.6" strokeLinecap="round" />
-            <circle cx="50" cy="36" r="3.8" fill="#0E0E10" stroke="#C8A24B" strokeWidth="2.4" />
-            <circle cx="24" cy="92" r="6.5" fill="none" stroke="#C8A24B" strokeWidth="3" />
-            <circle cx="76" cy="92" r="6.5" fill="none" stroke="#C8A24B" strokeWidth="3" />
-          </svg>
+          {/* BA monogram — shear-leg A with rising smoke */}
+          <img src="/logo-monogram.svg" alt="" width="86" height="86"
+               style={{ display: 'block', margin: '0 auto 22px' }} aria-hidden="true" />
           <p style={styles.heroLabel}>BLADES &amp; ASH STUDIO</p>
           <h1 style={styles.heroTitle}>Sharp Craft.<br /><span style={{ fontStyle: 'italic', color: '#C8A24B' }}>Quiet</span> Luxury.</h1>
           <p style={styles.heroSub}>Precision cuts and dimensional colour, by appointment. Book online anytime — expert hands, unhurried care.</p>

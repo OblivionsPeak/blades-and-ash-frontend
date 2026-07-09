@@ -30,7 +30,7 @@ export default function Footer() {
     <footer style={styles.footer}>
       <div style={styles.inner}>
         <div style={styles.brand}>
-          <span style={styles.scissor}>✂</span>
+          <img src="/logo-monogram.svg" alt="" width="30" height="30" style={{ display: 'block' }} aria-hidden="true" />
           <span style={styles.name}>BLADES & ASH STUDIO</span>
         </div>
 

@@ -47,7 +47,7 @@ export default function Login() {
     <div style={styles.page}>
       <div style={styles.card}>
         <div style={styles.logoRow}>
-          <span style={styles.scissor}>✂</span>
+          <img src="/logo-monogram.svg" alt="" width="34" height="34" style={{ display: 'block' }} aria-hidden="true" />
           <span style={styles.brand}>BLADES & ASH STUDIO</span>
         </div>
 
