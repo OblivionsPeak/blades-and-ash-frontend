@@ -84,9 +84,15 @@ export default function Admin() {
 
   // Clients tab
   const [clientModal, setClientModal] = useState(false);
+  const [editClient, setEditClient] = useState(null); // null = adding a new client
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', phone: '' });
   const [savingClient, setSavingClient] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
+  // Service-notes modal: which client, their note history
+  const [notesModal, setNotesModal] = useState(null); // { client, notes, loading }
+  const [noteText, setNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+  const [editingNote, setEditingNote] = useState(null); // { id, body }
   // Card-on-file modal: which client, the SetupIntent secret, saved cards
   const [cardModal, setCardModal] = useState(null); // { client, clientSecret, cards, loading }
 
@@ -496,31 +502,120 @@ export default function Admin() {
 
   function notify(m) { setMsg(m); setTimeout(() => setMsg(''), 3000); }
 
+  function openAddClient() {
+    setEditClient(null);
+    setClientForm({ full_name: '', email: '', phone: '' });
+    setClientModal(true);
+  }
+
+  async function openEditClient(c) {
+    setEditClient(c);
+    setClientForm({ full_name: c.full_name || '', email: '', phone: c.phone || '' });
+    setClientModal(true);
+    // The client list has no emails (they live in auth) — fetch this one's.
+    try {
+      const res = await api.getClient(c.id, session?.access_token);
+      setClientForm(f => ({ ...f, email: res.client?.email || '' }));
+    } catch {
+      // Leave email blank; saving with a blank email keeps the current one.
+    }
+  }
+
   async function saveClient() {
     const token = session?.access_token;
-    if (!clientForm.full_name.trim() || !clientForm.email.trim()) {
+    if (!clientForm.full_name.trim() || (!editClient && !clientForm.email.trim())) {
       notify('Name and email are required.');
       return;
     }
     setSavingClient(true);
     try {
-      const res = await api.createClient({
+      const body = {
         full_name: clientForm.full_name.trim(),
         email: clientForm.email.trim(),
         phone: clientForm.phone.trim(),
-      }, token);
-      await refreshTeam();
-      setClientModal(false);
-      setClientForm({ full_name: '', email: '', phone: '' });
-      notify('Client added.');
-      // Offer to capture their card right away.
-      if (res.client && confirm('Client added. Save a card on file now?')) {
-        openCardModal(res.client);
+      };
+      if (editClient) {
+        await api.updateClient(editClient.id, body, token);
+        await refreshTeam();
+        setClientModal(false);
+        notify('Client updated.');
+      } else {
+        const res = await api.createClient(body, token);
+        await refreshTeam();
+        setClientModal(false);
+        setClientForm({ full_name: '', email: '', phone: '' });
+        notify('Client added.');
+        // Offer to capture their card right away.
+        if (res.client && confirm('Client added. Save a card on file now?')) {
+          openCardModal(res.client);
+        }
       }
     } catch (e) {
-      notify(e.message || 'Could not add client.');
+      notify(e.message || (editClient ? 'Could not update client.' : 'Could not add client.'));
     } finally {
       setSavingClient(false);
+    }
+  }
+
+  async function deleteClient(c) {
+    if (!confirm(`Delete ${c.full_name || 'this client'}? Their past appointments are kept, but their profile, notes, and any saved card are removed. This can't be undone.`)) return;
+    try {
+      await api.deleteClient(c.id, session?.access_token);
+      await refreshTeam();
+      notify('Client deleted.');
+    } catch (e) {
+      notify(e.message || 'Could not delete client.');
+    }
+  }
+
+  async function openNotesModal(client) {
+    setNoteText('');
+    setEditingNote(null);
+    setNotesModal({ client, notes: [], loading: true });
+    try {
+      const res = await api.getClientNotes(client.id, session?.access_token);
+      setNotesModal({ client, notes: res.notes || [], loading: false });
+    } catch (e) {
+      setNotesModal(null);
+      notify(e.message || 'Could not load notes.');
+    }
+  }
+
+  async function addNote() {
+    if (!noteText.trim() || !notesModal) return;
+    setSavingNote(true);
+    try {
+      const res = await api.addClientNote(notesModal.client.id, { body: noteText.trim() }, session?.access_token);
+      setNotesModal(m => m && { ...m, notes: [res.note, ...m.notes] });
+      setNoteText('');
+    } catch (e) {
+      notify(e.message || 'Could not save the note.');
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
+  async function saveNoteEdit() {
+    if (!editingNote?.body.trim() || !notesModal) return;
+    setSavingNote(true);
+    try {
+      const res = await api.updateClientNote(notesModal.client.id, editingNote.id, { body: editingNote.body.trim() }, session?.access_token);
+      setNotesModal(m => m && { ...m, notes: m.notes.map(n => n.id === res.note.id ? res.note : n) });
+      setEditingNote(null);
+    } catch (e) {
+      notify(e.message || 'Could not save the note.');
+    } finally {
+      setSavingNote(false);
+    }
+  }
+
+  async function deleteNote(noteId) {
+    if (!confirm('Delete this note?')) return;
+    try {
+      await api.deleteClientNote(notesModal.client.id, noteId, session?.access_token);
+      setNotesModal(m => m && { ...m, notes: m.notes.filter(n => n.id !== noteId) });
+    } catch (e) {
+      notify(e.message || 'Could not delete the note.');
     }
   }
 
@@ -614,7 +709,7 @@ export default function Admin() {
                 value={clientSearch}
                 onChange={e => setClientSearch(e.target.value)}
               />
-              <button onClick={() => { setClientForm({ full_name: '', email: '', phone: '' }); setClientModal(true); }} style={styles.addBtn}>+ Add Client</button>
+              <button onClick={openAddClient} style={styles.addBtn}>+ Add Client</button>
             </div>
             {filteredClients.length === 0 ? (
               <p style={{ fontSize: 14, color: '#9A938A' }}>
@@ -623,18 +718,22 @@ export default function Admin() {
             ) : (
               <div className="admin-table-scroll" style={styles.table}>
                 <div className="admin-table-inner" style={styles.tableHead}>
-                  <span>Client</span><span>Phone</span><span>Card on file</span><span /><span>Actions</span>
+                  <span>Client</span><span>Phone</span><span>Card on file</span><span>Hair notes</span><span>Actions</span>
                 </div>
                 {filteredClients.map(c => (
                   <div key={c.id} className="admin-table-inner" style={styles.tableRow}>
                     <div style={styles.svcName}>{c.full_name || '(no name)'}</div>
                     <span style={styles.cell}>{c.phone || '—'}</span>
                     <span style={styles.cell}>{c.stripe_customer_id ? 'Yes' : '—'}</span>
-                    <span />
+                    <span>
+                      <button onClick={() => openNotesModal(c)} style={styles.editBtn}>Notes</button>
+                    </span>
                     <div style={styles.actions}>
                       <button onClick={() => openCardModal(c)} style={styles.editBtn}>
                         {c.stripe_customer_id ? 'Manage card' : 'Add card'}
                       </button>
+                      <button onClick={() => openEditClient(c)} style={styles.editBtn}>Edit</button>
+                      <button onClick={() => deleteClient(c)} style={styles.deleteBtn}>Delete</button>
                     </div>
                   </div>
                 ))}
@@ -1049,14 +1148,16 @@ export default function Admin() {
         </div>
       </Modal>
 
-      {/* Add Client Modal */}
-      <Modal open={clientModal} onClose={() => setClientModal(false)} title="Add Client">
+      {/* Add / Edit Client Modal */}
+      <Modal open={clientModal} onClose={() => setClientModal(false)} title={editClient ? 'Edit Client' : 'Add Client'}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <p style={{ fontSize: 13, color: '#9A938A', lineHeight: 1.6 }}>
-            Creates a client record so you can book appointments for them. They'll get
-            booking confirmations at this email, and can claim the account later with
-            "Forgot password" if they ever want to sign in.
-          </p>
+          {!editClient && (
+            <p style={{ fontSize: 13, color: '#9A938A', lineHeight: 1.6 }}>
+              Creates a client record so you can book appointments for them. They'll get
+              booking confirmations at this email, and can claim the account later with
+              "Forgot password" if they ever want to sign in.
+            </p>
+          )}
           <div className="form-group">
             <label className="form-label">Full Name</label>
             <input className="form-input" value={clientForm.full_name}
@@ -1073,9 +1174,69 @@ export default function Admin() {
               onChange={e => setClientForm(f => ({ ...f, phone: e.target.value }))} placeholder="+1 (555) 000-0000" />
           </div>
           <button onClick={saveClient} disabled={savingClient} style={styles.saveAvailBtn}>
-            {savingClient ? 'Adding…' : 'Add Client'}
+            {savingClient ? 'Saving…' : (editClient ? 'Save Changes' : 'Add Client')}
           </button>
         </div>
+      </Modal>
+
+      {/* Client Service Notes Modal */}
+      <Modal open={!!notesModal} onClose={() => setNotesModal(null)} title={`Hair Notes — ${notesModal?.client?.full_name || ''}`}>
+        {notesModal?.loading ? (
+          <div className="loading-center"><div className="spinner" /></div>
+        ) : notesModal && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label className="form-label">Add a note</label>
+              <textarea
+                className="form-input form-textarea"
+                style={{ minHeight: 80 }}
+                placeholder="e.g. Full highlight — 6N + 20vol, 45 min. Loves the copper tone, wants it brighter next time."
+                value={noteText}
+                onChange={e => setNoteText(e.target.value)}
+              />
+            </div>
+            <button onClick={addNote} disabled={savingNote || !noteText.trim()} style={styles.saveAvailBtn}>
+              {savingNote && !editingNote ? 'Saving…' : 'Save Note'}
+            </button>
+
+            {notesModal.notes.length === 0 ? (
+              <p style={{ fontSize: 13, color: '#9A938A' }}>No notes yet. Jot down formulas, timings, and what they loved — it'll all be here next visit.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 340, overflowY: 'auto' }}>
+                {notesModal.notes.map(n => (
+                  <div key={n.id} style={{ background: '#1E1E22', border: '1px solid #2A2A2A', borderRadius: 10, padding: '12px 14px' }}>
+                    <div style={{ fontSize: 12, color: '#9A938A', marginBottom: 6 }}>
+                      {new Date(n.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {n.author?.full_name ? ` · ${n.author.full_name}` : ''}
+                    </div>
+                    {editingNote?.id === n.id ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <textarea
+                          className="form-input form-textarea"
+                          style={{ minHeight: 70 }}
+                          value={editingNote.body}
+                          onChange={e => setEditingNote(en => ({ ...en, body: e.target.value }))}
+                        />
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button onClick={saveNoteEdit} disabled={savingNote || !editingNote.body.trim()} style={styles.editBtn}>Save</button>
+                          <button onClick={() => setEditingNote(null)} style={styles.editBtn}>Cancel</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ fontSize: 14, color: '#EDE7DB', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{n.body}</div>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                          <button onClick={() => setEditingNote({ id: n.id, body: n.body })} style={styles.editBtn}>Edit</button>
+                          <button onClick={() => deleteNote(n.id)} style={styles.deleteBtn}>Delete</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
 
       {/* Card on File Modal */}
