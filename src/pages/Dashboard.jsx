@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfDay, addDays, isSameDay } from 'date-fns';
+import { format, startOfDay, addDays, isSameDay, startOfMonth, endOfMonth } from 'date-fns';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { api } from '../api';
@@ -16,6 +16,11 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState([]);
+  // Which month the little calendar is showing, and a per-day summary for it so
+  // each tile can wear a dot when there's something booked that day.
+  const [activeMonth, setActiveMonth] = useState(startOfMonth(new Date()));
+  const [monthDays, setMonthDays] = useState({}); // 'yyyy-MM-dd' -> { count, statuses: [] }
+  const [monthRefresh, setMonthRefresh] = useState(0);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedAppt, setSelectedAppt] = useState(null);
@@ -87,6 +92,51 @@ export default function Dashboard() {
     if (!session?.access_token) return;
     api.getDashboard(session.access_token).then(setStats).catch(() => {});
   }, [session]);
+
+  // Load a whole month at a time (padded by a week each side so the greyed-out
+  // neighbouring-month tiles get dots too) and bucket it by local calendar day.
+  // Cancelled appointments don't earn a dot — that day really is free.
+  useEffect(() => {
+    if (!session?.access_token) return;
+    const params = {
+      from: addDays(startOfMonth(activeMonth), -7).toISOString(),
+      to: addDays(endOfMonth(activeMonth), 7).toISOString(),
+    };
+    if (!isAdmin) params.staff_id = user.id;
+    let cancelled = false;
+    api.getAppointments(session.access_token, params)
+      .then(data => {
+        if (cancelled) return;
+        const list = data.appointments || data || [];
+        const byDay = {};
+        for (const a of list) {
+          if (a.status === 'cancelled') continue;
+          const key = format(new Date(a.start_time), 'yyyy-MM-dd');
+          if (!byDay[key]) byDay[key] = { count: 0, statuses: [] };
+          byDay[key].count += 1;
+          if (!byDay[key].statuses.includes(a.status)) byDay[key].statuses.push(a.status);
+        }
+        setMonthDays(byDay);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [activeMonth, session, monthRefresh]);
+
+  // Dots under each calendar tile: one per distinct status that day (capped at
+  // three), tinted to match the legend below the calendar. Hover shows the count.
+  function tileContent({ date, view }) {
+    if (view !== 'month') return null;
+    const day = monthDays[format(date, 'yyyy-MM-dd')];
+    if (!day) return null;
+    const dots = day.statuses.slice(0, 3);
+    return (
+      <div className="dash-cal-dots" title={`${day.count} appointment${day.count !== 1 ? 's' : ''}`}>
+        {dots.map(s => (
+          <span key={s} className="dash-cal-dot" style={{ background: STATUS_COLORS[s] || '#C8A24B' }} />
+        ))}
+      </div>
+    );
+  }
 
   // Load Holly's discount codes once (admin only) to populate the apply-discount
   // picker in the appointment modal.
@@ -165,6 +215,7 @@ export default function Dashboard() {
       if (!isAdmin) params.staff_id = user.id;
       const data = await api.getAppointments(token, params);
       setAppointments(data.appointments || data || []);
+      setMonthRefresh(n => n + 1);
     } catch (e) {
       setNaErr(e.message || 'Could not create the appointment.');
     } finally {
@@ -181,6 +232,7 @@ export default function Dashboard() {
     const updated = await api.updateAppointment(id, { status }, session.access_token);
     setAppointments(a => a.map(x => x.id === id ? { ...x, ...updated } : x));
     setSelectedAppt(s => s ? { ...s, ...updated } : s);
+    setMonthRefresh(n => n + 1);
     setUpdatingStatus(false);
   }
 
@@ -213,6 +265,7 @@ export default function Dashboard() {
       setRsSlots([]);
       // Jump the calendar to the new day so the moved appointment is visible.
       setSelectedDate(new Date(res.appointment.start_time));
+      setMonthRefresh(n => n + 1);
     } catch (e) {
       setRsResult({ ok: false, message: e.message || 'Could not reschedule — that time may have just been taken.' });
     } finally {
@@ -340,12 +393,18 @@ export default function Dashboard() {
       <div className="container dash-layout" style={styles.layout}>
         {/* Sidebar */}
         <div className="dash-sidebar" style={styles.sidebar}>
-          <Calendar
-            onChange={setSelectedDate}
-            value={selectedDate}
-            minDate={addDays(new Date(), -90)}
-            maxDate={addDays(new Date(), 90)}
-          />
+          <div className="dash-calendar">
+            <Calendar
+              onChange={setSelectedDate}
+              value={selectedDate}
+              minDate={addDays(new Date(), -90)}
+              maxDate={addDays(new Date(), 90)}
+              onActiveStartDateChange={({ activeStartDate }) => {
+                if (activeStartDate) setActiveMonth(startOfMonth(activeStartDate));
+              }}
+              tileContent={tileContent}
+            />
+          </div>
           <div style={styles.legend}>
             {STATUS_OPTIONS.map(s => (
               <div key={s} style={styles.legendItem}>

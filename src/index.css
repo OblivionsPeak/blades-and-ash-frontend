@@ -188,6 +188,33 @@ input, textarea, select { color: var(--text); }
 .react-calendar__navigation button:enabled:hover { background: var(--surface-2) !important; border-radius: 8px !important; }
 .react-calendar__navigation button:disabled { background: transparent !important; color: #4a463f !important; }
 
+/* Dashboard calendar: booked-day dots under each date. Scoped to the dashboard
+   so the booking and profile calendars keep their plain tiles. */
+.dash-calendar .react-calendar__tile {
+  position: relative;
+  padding-bottom: 12px !important;
+}
+.dash-calendar .dash-cal-dots {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  pointer-events: none;
+}
+.dash-calendar .dash-cal-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: block;
+}
+/* On the selected (gold) tile, keep the dots legible against the fill. */
+.dash-calendar .react-calendar__tile--active .dash-cal-dot {
+  box-shadow: 0 0 0 1px rgba(14,14,16,0.55);
+}
+
 @media (max-width: 768px) {
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
   .section { padding: 48px 0; }
