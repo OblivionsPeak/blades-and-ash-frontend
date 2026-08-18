@@ -288,15 +288,17 @@ export default function Dashboard() {
     setFeeType('no_show');
     // Always reset to "unknown/loading" for THIS appointment first, so the
     // previous appointment's card is never shown here.
-    setCardState({ apptId: appt.id, status: 'loading', card: null });
+    setCardState({ apptId: appt.id, status: 'loading', card: null, reason: null });
     if (isAdmin && session?.access_token) {
       api.getAppointmentCard(appt.id, session.access_token)
         // Ignore a response that lands after another appointment was opened.
-        .then(res => setCardState(s => (s.apptId === appt.id ? { apptId: appt.id, status: 'loaded', card: res?.card || null } : s)))
+        .then(res => setCardState(s => (s.apptId === appt.id
+          ? { apptId: appt.id, status: 'loaded', card: res?.card || null, reason: res?.reason || null }
+          : s)))
         // A failed lookup is treated as "no card" — never break the modal.
-        .catch(() => setCardState(s => (s.apptId === appt.id ? { apptId: appt.id, status: 'loaded', card: null } : s)));
+        .catch(() => setCardState(s => (s.apptId === appt.id ? { apptId: appt.id, status: 'loaded', card: null, reason: null } : s)));
     } else {
-      setCardState({ apptId: appt.id, status: 'loaded', card: null });
+      setCardState({ apptId: appt.id, status: 'loaded', card: null, reason: null });
     }
     setDiscResult(null);
     setApplyCode(appt.discount_code || '');
@@ -391,6 +393,15 @@ export default function Dashboard() {
   // Only trust the card lookup if it belongs to the appointment currently open.
   const apptCardLoaded = !!selectedAppt && cardState.apptId === selectedAppt.id && cardState.status === 'loaded';
   const apptCard = apptCardLoaded ? cardState.card : null;
+
+  // "No card on file" has innocent causes and one worth chasing — say which,
+  // so nobody has to reason it out from the appointment's history.
+  const NO_CARD_REASONS = {
+    never_requested: 'No card on file — none was taken at booking',
+    not_completed: "No card on file — the client didn't finish the card step",
+    removed: 'No card on file — the saved card has since been removed',
+  };
+  const noCardText = NO_CARD_REASONS[apptCardLoaded ? cardState.reason : null] || 'No card on file';
 
   const dayAppts = appointments
     .filter(a => isSameDay(new Date(a.start_time), selectedDate))
@@ -753,7 +764,7 @@ export default function Dashboard() {
                       {`${apptCard.brand ? apptCard.brand.charAt(0).toUpperCase() + apptCard.brand.slice(1) : 'Card'} ···· ${apptCard.last4} · exp ${String(apptCard.exp_month).padStart(2, '0')}/${apptCard.exp_year}`}
                     </p>
                   ) : (
-                    <p style={{ fontSize: 13, color: '#9A938A', marginBottom: 8 }}>No card on file</p>
+                    <p style={{ fontSize: 13, color: '#9A938A', marginBottom: 8 }}>{noCardText}</p>
                   )}
                   <div style={{ display: 'flex', gap: 8 }}>
                     <select className="form-select" value={feeType} onChange={e => setFeeType(e.target.value)} disabled={feeBusy} style={{ flex: 1 }}>
