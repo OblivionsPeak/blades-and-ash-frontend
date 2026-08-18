@@ -1,13 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfDay, addDays, isSameDay, startOfMonth, endOfMonth } from 'date-fns';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import StatusBadge from '../components/StatusBadge';
 import Modal from '../components/Modal';
+import CardSetupForm from '../components/CardSetupForm';
 import { apptItems, apptServiceNames } from '../utils';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 const STATUS_OPTIONS = ['pending', 'confirmed', 'completed', 'no_show', 'cancelled'];
 
@@ -73,6 +78,21 @@ export default function Dashboard() {
   const [naSaving, setNaSaving] = useState(false);
   const [naErr, setNaErr] = useState('');
 
+  // Card-on-file step for an admin-created booking. When "require a card on
+  // file" is on and the client has no usable card, createAppointment comes back
+  // with a setup_client_secret and a *pending* appointment — the booking already
+  // exists, this step only decides whether a card gets attached to it.
+  // { apptId, clientSecret, clientName }
+  const [naCardStep, setNaCardStep] = useState(null);
+  const [naCardErr, setNaCardErr] = useState('');
+  const [naCardBusy, setNaCardBusy] = useState(false);
+  // Outcome banner shown above the day's timeline: { ok, message }
+  const [naCardResult, setNaCardResult] = useState(null);
+  // A saved card only *confirms* the appointment once Stripe's webhook lands,
+  // which is a beat after the browser-side confirmation returns. One delayed
+  // re-refresh lets the Pending badge catch up on its own — no polling loop.
+  const confirmRefreshTimer = useRef(null);
+
   const isAdmin = profile?.role === 'admin';
   const isStaff = profile?.role === 'staff' || isAdmin;
 
@@ -96,6 +116,16 @@ export default function Dashboard() {
     if (!session?.access_token) return;
     api.getDashboard(session.access_token).then(setStats).catch(() => {});
   }, [session]);
+
+  // Never leave a pending refresh running after this screen is gone, or after
+  // she's moved to another day — a late reply for the old day would otherwise
+  // overwrite the timeline she's looking at now.
+  useEffect(() => () => {
+    if (confirmRefreshTimer.current) {
+      clearTimeout(confirmRefreshTimer.current);
+      confirmRefreshTimer.current = null;
+    }
+  }, [selectedDate]);
 
   // Load a whole month at a time (padded by a week each side so the greyed-out
   // neighbouring-month tiles get dots too) and bucket it by local calendar day.
@@ -196,6 +226,22 @@ export default function Dashboard() {
     }));
   }
 
+  // Re-pull a day's appointments. Every exit from the booking flow (including
+  // every exit from the card step) goes through this, so a booking that exists
+  // is always visible on the timeline — she never has to guess whether it saved.
+  async function refreshDay(day = selectedDate) {
+    const token = session?.access_token;
+    const params = { date: format(day, 'yyyy-MM-dd') };
+    if (!isAdmin) params.staff_id = user.id;
+    try {
+      const data = await api.getAppointments(token, params);
+      setAppointments(data.appointments || data || []);
+    } catch {
+      // A failed refresh must never strand the UI — the timeline just stays as-is.
+    }
+    setMonthRefresh(n => n + 1);
+  }
+
   async function saveNewAppt() {
     const token = session?.access_token;
     if (!naForm.client_id || !naForm.staff_id || naForm.service_ids.length === 0 || !naForm.slot) {
@@ -204,6 +250,7 @@ export default function Dashboard() {
     }
     setNaSaving(true);
     setNaErr('');
+    setNaCardResult(null);
     try {
       const result = await api.createAppointment({
         client_id: naForm.client_id,
@@ -215,16 +262,103 @@ export default function Dashboard() {
       // Jump the calendar to the new appointment's day so it's visible.
       const apptDay = new Date(result.appointment.start_time);
       setSelectedDate(apptDay);
-      const params = { date: format(apptDay, 'yyyy-MM-dd') };
-      if (!isAdmin) params.staff_id = user.id;
-      const data = await api.getAppointments(token, params);
-      setAppointments(data.appointments || data || []);
-      setMonthRefresh(n => n + 1);
+      await refreshDay(apptDay);
+      // The booking now exists either way. If the backend wants a card on file
+      // for it, continue into the card step instead of finishing here.
+      if (result.setup_client_secret) {
+        setNaCardErr('');
+        setNaCardStep({
+          apptId: result.appointment.id,
+          clientSecret: result.setup_client_secret,
+          clientName: naClients.find(c => c.id === naForm.client_id)?.full_name || '',
+        });
+      }
     } catch (e) {
       setNaErr(e.message || 'Could not create the appointment.');
     } finally {
       setNaSaving(false);
     }
+  }
+
+  // Card saved on the pending booking. The appointment is NOT confirmed yet —
+  // Stripe's webhook flips it a moment later — so say "confirming now…" and
+  // re-refresh once so the badge updates itself instead of looking stuck.
+  async function onNewApptCardSaved() {
+    const step = naCardStep;
+    const day = selectedDate;
+    setNaCardStep(null);
+    setNaCardErr('');
+    setNaCardResult({
+      ok: true,
+      message: `Card saved${step?.clientName ? ` for ${step.clientName}` : ''} — confirming now…`,
+    });
+    await refreshDay(day);
+    scheduleConfirmRefresh(day);
+  }
+
+  // One delayed re-refresh (not a poll) to catch the webhook's status flip.
+  function scheduleConfirmRefresh(day) {
+    if (confirmRefreshTimer.current) clearTimeout(confirmRefreshTimer.current);
+    confirmRefreshTimer.current = setTimeout(() => {
+      confirmRefreshTimer.current = null;
+      refreshDay(day);
+    }, 4000);
+  }
+
+  // Deliberately skip the card. The appointment ALREADY exists and is pending —
+  // this only flips its status, it must never create a second booking.
+  async function confirmNewApptWithoutCard() {
+    if (!naCardStep) return;
+    setNaCardBusy(true);
+    setNaCardErr('');
+    try {
+      // Dedicated endpoint rather than a plain status update: it also cancels
+      // the pending card request, so this reads as "booked without a card" and
+      // not as a client who abandoned the card step.
+      await api.skipAppointmentCard(naCardStep.apptId, session.access_token);
+      setNaCardStep(null);
+      // Deliberately not "no card on file": an account holder may still have a
+      // card saved from an earlier visit, which this booking simply didn't
+      // re-take. Claiming otherwise would contradict the appointment's own card
+      // line, which shows whatever is genuinely there.
+      setNaCardResult({ ok: true, message: 'Booked without taking a card — the appointment is confirmed.' });
+      await refreshDay();
+    } catch (e) {
+      // 409 = the client's card landed while this step was open, so there is
+      // nothing left to skip and the appointment is already handled. That's the
+      // best outcome, not a failure — showing it in red (and leaving the card
+      // form open) would invite her to read the card in a second time, and every
+      // retry would 409 again forever.
+      if (e.status === 409) {
+        const step = naCardStep;
+        const day = selectedDate;
+        setNaCardStep(null);
+        setNaCardErr('');
+        setNaCardResult({
+          ok: true,
+          message: `Card saved${step?.clientName ? ` for ${step.clientName}` : ''} — the appointment is confirmed.`,
+        });
+        await refreshDay(day);
+      } else {
+        setNaCardErr(e.message || 'Could not confirm the appointment. Try again, or close this and set the status from the appointment itself.');
+      }
+    } finally {
+      setNaCardBusy(false);
+    }
+  }
+
+  // Dismissing the step leaves the booking pending — that's allowed, but say so
+  // out loud so she doesn't think it failed and book it a second time.
+  async function dismissNewApptCardStep() {
+    if (naCardBusy) return;
+    const ok = window.confirm(
+      'Close without taking a card?\n\nThe appointment is already booked and will stay Pending. You can open it on the calendar to confirm it, or add a card later from Admin → Clients.',
+    );
+    if (!ok) return;
+    setNaCardStep(null);
+    setNaCardErr('');
+    setNaCardResult({ ok: true, message: 'Appointment booked — still pending, no card on file yet.' });
+    await refreshDay();
   }
 
   const naTotal = naServices
@@ -456,6 +590,12 @@ export default function Dashboard() {
             )}
           </div>
 
+          {naCardResult && (
+            <p style={{ fontSize: 13, marginBottom: 12, color: naCardResult.ok ? '#10B981' : '#EF4444' }}>
+              {naCardResult.message}
+            </p>
+          )}
+
           {loading ? (
             <div className="loading-center"><div className="spinner" /></div>
           ) : dayAppts.length === 0 ? (
@@ -572,6 +712,47 @@ export default function Dashboard() {
             {naSaving ? 'Booking…' : 'Book Appointment'}
           </button>
         </div>
+      </Modal>
+
+      {/* Card-on-file step — continuation of the booking above. The appointment
+          already exists and is pending; nothing here creates another one. */}
+      <Modal open={!!naCardStep} onClose={dismissNewApptCardStep} title="Card on file">
+        {naCardStep && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <p style={{ fontSize: 14, color: '#EDE7DB', lineHeight: 1.6 }}>
+              {naCardStep.clientName ? `${naCardStep.clientName} is booked` : 'The appointment is booked'} — it just needs a card
+              on file before it's confirmed. If they're on the phone, read their card details in below.
+            </p>
+
+            <Elements stripe={stripePromise} options={{ clientSecret: naCardStep.clientSecret }}>
+              <CardSetupForm
+                clientSecret={naCardStep.clientSecret}
+                onSuccess={onNewApptCardSaved}
+                onError={msg => setNaCardErr(msg || 'That card was declined. Try another card, or book without one.')}
+              />
+            </Elements>
+
+            {naCardErr && (
+              <p style={{ fontSize: 13, color: '#EF4444', lineHeight: 1.5 }}>
+                {naCardErr} The appointment is still booked — you can try again above or book without a card.
+              </p>
+            )}
+
+            <div className="divider" />
+
+            <button
+              onClick={confirmNewApptWithoutCard}
+              disabled={naCardBusy}
+              style={{ ...styles.chargeFeeBtn, width: '100%', padding: '10px 20px', color: '#9A938A', opacity: naCardBusy ? 0.5 : 1 }}
+            >
+              {naCardBusy ? 'Confirming…' : 'Book without a card'}
+            </button>
+            <p style={{ fontSize: 12, color: '#9A938A', marginTop: -6, lineHeight: 1.5 }}>
+              Confirms this appointment as it stands, with no card on file — no-show fees can't be charged for it.
+              Card details go straight to Stripe; they're never stored on our server.
+            </p>
+          </div>
+        )}
       </Modal>
 
       {/* Appointment modal */}

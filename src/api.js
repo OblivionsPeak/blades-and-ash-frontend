@@ -6,7 +6,12 @@ async function apiFetch(path, options = {}, token = null) {
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
+    // `message` stays exactly what it always was — every existing
+    // `catch (e) { e.message }` keeps behaving identically. `status` is
+    // additive, for callers that need to tell a 409 from a real failure.
+    const error = new Error(err.error || 'Request failed');
+    error.status = res.status;
+    throw error;
   }
   return res.json();
 }
@@ -37,6 +42,7 @@ export const api = {
   rescheduleAppointment: (id, body, token) => apiFetch(`/api/appointments/${id}/reschedule`, { method: 'PUT', body: JSON.stringify(body) }, token),
   chargeFee: (id, body, token) => apiFetch(`/api/appointments/${id}/charge-fee`, { method: 'POST', body: JSON.stringify(body) }, token),
   getAppointmentCard: (id, token) => apiFetch(`/api/appointments/${id}/card`, {}, token),
+  skipAppointmentCard: (id, token) => apiFetch(`/api/appointments/${id}/skip-card`, { method: 'POST' }, token),
   applyAppointmentDiscount: (id, discountCode, token) => apiFetch(`/api/appointments/${id}/apply-discount`, { method: 'POST', body: JSON.stringify({ discount_code: discountCode }) }, token),
   recordPayment: (id, body, token) => apiFetch(`/api/appointments/${id}/record-payment`, { method: 'POST', body: JSON.stringify(body) }, token),
 
@@ -48,7 +54,11 @@ export const api = {
   deleteDiscount: (id, token) => apiFetch(`/api/discounts/${id}`, { method: 'DELETE' }, token),
   validateDiscount: (body, token) => apiFetch('/api/discounts/validate', { method: 'POST', body: JSON.stringify(body) }, token),
 
-  getSettings: () => apiFetch('/api/settings'),
+  // The public GET is cached for 5 minutes, which is right for the footer but
+  // wrong for the admin editor: a cached body would render the card-on-file
+  // toggle from BEFORE the last save, and saving that back silently reverts it.
+  // `fresh` busts the HTTP cache for the editor only.
+  getSettings: ({ fresh = false } = {}) => apiFetch(`/api/settings${fresh ? `?t=${Date.now()}` : ''}`),
   updateSettings: (body, token) => apiFetch('/api/settings', { method: 'PUT', body: JSON.stringify(body) }, token),
 
   getGallery: () => apiFetch('/api/gallery'),
