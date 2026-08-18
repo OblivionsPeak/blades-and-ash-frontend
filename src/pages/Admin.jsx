@@ -88,6 +88,14 @@ export default function Admin() {
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', phone: '' });
   const [savingClient, setSavingClient] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
+  // Clients tab has two views: account holders ('accounts') and people who
+  // booked without an account ('guests'). Accounts stays the default.
+  const [clientView, setClientView] = useState('accounts');
+  const [guests, setGuests] = useState([]);
+  const [guestsLoaded, setGuestsLoaded] = useState(false);
+  const [guestsLoading, setGuestsLoading] = useState(false);
+  const [guestsError, setGuestsError] = useState('');
+  const [guestsTotal, setGuestsTotal] = useState(0);
   // Service-notes modal: which client, their note history
   const [notesModal, setNotesModal] = useState(null); // { client, notes, loading }
   const [noteText, setNoteText] = useState('');
@@ -130,6 +138,32 @@ export default function Admin() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'gallery') loadGallery(); }, [tab]);
+
+  // Guests load once, the first time the Clients tab is opened — the tab's own
+  // render never waits on it, and searching filters the loaded list locally
+  // rather than firing a request per keystroke.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (tab === 'clients') loadGuests(); }, [tab, session]);
+
+  async function loadGuests() {
+    const token = session?.access_token;
+    if (!token || guestsLoaded || guestsLoading) return;
+    setGuestsLoading(true);
+    setGuestsError('');
+    try {
+      const res = await api.getGuests(token, { limit: 1000, offset: 0 });
+      setGuests(res.guests || []);
+      // Keep the server's true count: searching filters the loaded list
+      // locally, so if the list were ever capped we must say so rather than
+      // quietly showing a subset.
+      setGuestsTotal(typeof res.total === 'number' ? res.total : (res.guests || []).length);
+      setGuestsLoaded(true);
+    } catch (e) {
+      setGuestsError(e.message || 'Could not load guest bookings.');
+    } finally {
+      setGuestsLoading(false);
+    }
+  }
 
   async function loadGallery() {
     setGalleryLoading(true);
@@ -648,6 +682,16 @@ export default function Admin() {
         || (c.phone || '').includes(clientSearch.trim()))
     : clients;
 
+  // Same search box drives both views; guests match on name, email, or phone.
+  const filteredGuests = clientSearch.trim()
+    ? guests.filter(g => {
+        const q = clientSearch.trim().toLowerCase();
+        return (g.name || '').toLowerCase().includes(q)
+          || (g.email || '').toLowerCase().includes(q)
+          || (g.phone || '').includes(clientSearch.trim());
+      })
+    : guests;
+
   if (loading) return <div className="loading-center"><div className="spinner" /></div>;
 
   return (
@@ -701,17 +745,77 @@ export default function Admin() {
         {/* Clients Tab */}
         {tab === 'clients' && (
           <div>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setClientView('accounts')}
+                style={clientView === 'accounts' ? styles.addBtn : styles.importBtn}
+              >
+                Accounts ({clients.length})
+              </button>
+              <button
+                onClick={() => setClientView('guests')}
+                style={clientView === 'guests' ? styles.addBtn : styles.importBtn}
+              >
+                Guests{guestsLoaded ? ` (${guestsTotal})` : ''}
+              </button>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
               <input
                 className="form-input"
                 style={{ maxWidth: 280 }}
-                placeholder="Search by name or phone…"
+                placeholder={clientView === 'guests' ? 'Search by name, email, or phone…' : 'Search by name or phone…'}
                 value={clientSearch}
                 onChange={e => setClientSearch(e.target.value)}
               />
-              <button onClick={openAddClient} style={styles.addBtn}>+ Add Client</button>
+              {clientView === 'accounts' && <button onClick={openAddClient} style={styles.addBtn}>+ Add Client</button>}
             </div>
-            {filteredClients.length === 0 ? (
+
+            {/* Guests view — read-only. Guests have no profile row, so none of
+                the client handlers (notes, card, edit, delete) apply here. */}
+            {clientView === 'guests' && (
+              <div>
+                <p style={{ fontSize: 14, color: '#9A938A', marginBottom: 16, lineHeight: 1.6, maxWidth: 640 }}>
+                  These are people who booked without creating an account. Their card is captured at booking —
+                  to charge a no-show fee, open the appointment itself on the Dashboard.
+                </p>
+                {guestsLoaded && guestsTotal > guests.length && (
+                  <p style={{ fontSize: 13, color: '#C8A24B', marginBottom: 16 }}>
+                    Showing the {guests.length} most recent of {guestsTotal} guests. Older ones aren't listed here.
+                  </p>
+                )}
+                {guestsLoading ? (
+                  <div className="loading-center"><div className="spinner" /></div>
+                ) : guestsError ? (
+                  <p style={{ fontSize: 14, color: '#9A938A' }}>{guestsError}</p>
+                ) : filteredGuests.length === 0 ? (
+                  <p style={{ fontSize: 14, color: '#9A938A' }}>
+                    {guests.length === 0 ? 'No guest bookings yet.' : 'No guests match that search.'}
+                  </p>
+                ) : (
+                  <div className="admin-table-scroll" style={styles.table}>
+                    <div className="admin-disc-inner" style={styles.discHead}>
+                      <span>Guest</span><span>Email</span><span>Phone</span><span>Bookings</span><span>Last visit</span><span>Card on file</span>
+                    </div>
+                    {filteredGuests.map(g => (
+                      <div key={g.email} className="admin-disc-inner" style={styles.discRow}>
+                        <div style={styles.svcName}>{g.name || '(no name)'}</div>
+                        <span style={styles.cell}>{g.email}</span>
+                        <span style={styles.cell}>{g.phone || '—'}</span>
+                        <span style={styles.cell}>{g.bookings ?? 0}</span>
+                        <span style={styles.cell}>
+                          {g.last_appointment_at
+                            ? new Date(g.last_appointment_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                            : '—'}
+                        </span>
+                        <span style={styles.cell}>{g.has_card ? 'Yes' : '—'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {clientView === 'accounts' && (filteredClients.length === 0 ? (
               <p style={{ fontSize: 14, color: '#9A938A' }}>
                 {clients.length === 0 ? 'No clients yet. Add one to get started.' : 'No clients match that search.'}
               </p>
@@ -738,7 +842,7 @@ export default function Admin() {
                   </div>
                 ))}
               </div>
-            )}
+            ))}
           </div>
         )}
 

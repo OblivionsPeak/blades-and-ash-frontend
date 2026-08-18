@@ -31,6 +31,10 @@ export default function Dashboard() {
   const [feeType, setFeeType] = useState('no_show');
   const [feeBusy, setFeeBusy] = useState(false);
   const [feeResult, setFeeResult] = useState(null); // { ok, message }
+  // Card on file for the open appointment. `apptId` stamps which appointment the
+  // card belongs to so a slow response can never be painted against a different
+  // appointment: { apptId, status: 'loading' | 'loaded', card }
+  const [cardState, setCardState] = useState({ apptId: null, status: 'loading', card: null });
 
   // Discount application (admin, inside the appointment modal). Holly's codes,
   // incl. eligibility-gated "salon only" ones, applied to an appointment at
@@ -282,6 +286,18 @@ export default function Dashboard() {
     setRsResult(null);
     setFeeResult(null);
     setFeeType('no_show');
+    // Always reset to "unknown/loading" for THIS appointment first, so the
+    // previous appointment's card is never shown here.
+    setCardState({ apptId: appt.id, status: 'loading', card: null });
+    if (isAdmin && session?.access_token) {
+      api.getAppointmentCard(appt.id, session.access_token)
+        // Ignore a response that lands after another appointment was opened.
+        .then(res => setCardState(s => (s.apptId === appt.id ? { apptId: appt.id, status: 'loaded', card: res?.card || null } : s)))
+        // A failed lookup is treated as "no card" — never break the modal.
+        .catch(() => setCardState(s => (s.apptId === appt.id ? { apptId: appt.id, status: 'loaded', card: null } : s)));
+    } else {
+      setCardState({ apptId: appt.id, status: 'loaded', card: null });
+    }
     setDiscResult(null);
     setApplyCode(appt.discount_code || '');
     setLinkCopied(false);
@@ -371,6 +387,10 @@ export default function Dashboard() {
       setFeeBusy(false);
     }
   }
+
+  // Only trust the card lookup if it belongs to the appointment currently open.
+  const apptCardLoaded = !!selectedAppt && cardState.apptId === selectedAppt.id && cardState.status === 'loaded';
+  const apptCard = apptCardLoaded ? cardState.card : null;
 
   const dayAppts = appointments
     .filter(a => isSameDay(new Date(a.start_time), selectedDate))
@@ -713,8 +733,10 @@ export default function Dashboard() {
               </>
             )}
 
-            {/* No-show / late-cancel fee — charges the client's saved card */}
-            {isAdmin && selectedAppt.client?.id && (
+            {/* No-show / late-cancel fee — charges the card on file. Shown for
+                guest bookings too: guests have client.id === null but the
+                backend can still charge the card captured at booking. */}
+            {isAdmin && (
               <>
                 <div className="divider" />
                 <div>
@@ -724,12 +746,21 @@ export default function Dashboard() {
                       ${(selectedAppt.fee_charged_cents / 100).toFixed(2)} fee already charged.
                     </p>
                   )}
+                  {!apptCardLoaded ? (
+                    <p style={{ fontSize: 13, color: '#9A938A', marginBottom: 8 }}>Checking card…</p>
+                  ) : apptCard ? (
+                    <p style={{ fontSize: 13, color: '#10B981', marginBottom: 8 }}>
+                      {`${apptCard.brand ? apptCard.brand.charAt(0).toUpperCase() + apptCard.brand.slice(1) : 'Card'} ···· ${apptCard.last4} · exp ${String(apptCard.exp_month).padStart(2, '0')}/${apptCard.exp_year}`}
+                    </p>
+                  ) : (
+                    <p style={{ fontSize: 13, color: '#9A938A', marginBottom: 8 }}>No card on file</p>
+                  )}
                   <div style={{ display: 'flex', gap: 8 }}>
                     <select className="form-select" value={feeType} onChange={e => setFeeType(e.target.value)} disabled={feeBusy} style={{ flex: 1 }}>
                       <option value="no_show">No-show (100%)</option>
                       <option value="late_cancel">Late cancel (50%)</option>
                     </select>
-                    <button onClick={chargeFee} disabled={feeBusy} style={styles.chargeFeeBtn}>
+                    <button onClick={chargeFee} disabled={feeBusy || (apptCardLoaded && !apptCard)} style={styles.chargeFeeBtn}>
                       {feeBusy ? 'Charging…' : 'Charge card'}
                     </button>
                   </div>
@@ -739,7 +770,7 @@ export default function Dashboard() {
                     </p>
                   )}
                   <p style={{ fontSize: 12, color: '#9A938A', marginTop: 8, lineHeight: 1.5 }}>
-                    Charges the card on file (minus anything already paid). Requires a saved card — add one from the Clients tab.
+                    Charges the card on file (minus anything already paid). Cards are captured at booking, including for guests; for account holders you can also add one from the Clients tab.
                   </p>
                 </div>
               </>
