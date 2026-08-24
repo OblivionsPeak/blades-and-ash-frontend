@@ -12,6 +12,11 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
+// The Clients tab searches the loaded list in the browser rather than querying
+// per keystroke, so it has to load the whole roster — at the server's ceiling.
+// Anything less and a client past the cut is invisible and unsearchable.
+const CLIENT_PAGE_SIZE = 1000;
+
 // Format a YYYY-MM-DD range for display. Dates are parsed as local (append
 // T00:00:00) so the calendar day isn't shifted by the timezone offset.
 function formatDateRange(start, end) {
@@ -42,6 +47,9 @@ export default function Admin() {
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
   const [clients, setClients] = useState([]);
+  // Server's exact count, kept separate from clients.length so the tab can say
+  // when the loaded list is a subset rather than quietly showing part of it.
+  const [clientsTotal, setClientsTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState('');
 
@@ -120,13 +128,13 @@ export default function Admin() {
     Promise.all([
       api.getServices(),
       api.getStaff(),
-      api.getClients(token).catch(() => ({ clients: [] })),
+      api.getClients(token, { limit: CLIENT_PAGE_SIZE, offset: 0 }).catch(() => ({ clients: [] })),
       api.getDiscounts(token).catch(() => []),
     ])
       .then(([svcs, stf, cl, disc]) => {
         setServices(svcs);
         setStaff(stf);
-        setClients(cl.clients || cl || []);
+        applyClients(cl);
         setDiscounts(disc.discounts || disc || []);
       })
       .catch(() => {})
@@ -223,11 +231,22 @@ export default function Admin() {
     }
   }
 
+  // Both client fetches land here so the list and the server's count stay in
+  // step. Older shapes returned a bare array, hence the fallbacks.
+  function applyClients(res) {
+    const list = res?.clients || res || [];
+    setClients(list);
+    setClientsTotal(typeof res?.total === 'number' ? res.total : list.length);
+  }
+
   async function refreshTeam() {
     const token = session?.access_token;
-    const [stf, cl] = await Promise.all([api.getStaff(), api.getClients(token).catch(() => ({ clients: [] }))]);
+    const [stf, cl] = await Promise.all([
+      api.getStaff(),
+      api.getClients(token, { limit: CLIENT_PAGE_SIZE, offset: 0 }).catch(() => ({ clients: [] })),
+    ]);
     setStaff(stf);
-    setClients(cl.clients || cl || []);
+    applyClients(cl);
   }
 
   async function changeRole(id, role) {
@@ -750,7 +769,7 @@ export default function Admin() {
                 onClick={() => setClientView('accounts')}
                 style={clientView === 'accounts' ? styles.addBtn : styles.importBtn}
               >
-                Accounts ({clients.length})
+                Accounts ({clientsTotal})
               </button>
               <button
                 onClick={() => setClientView('guests')}
@@ -813,6 +832,12 @@ export default function Admin() {
                   </div>
                 )}
               </div>
+            )}
+
+            {clientView === 'accounts' && clientsTotal > clients.length && (
+              <p style={{ fontSize: 13, color: '#C8A24B', marginBottom: 16 }}>
+                Showing {clients.length} of {clientsTotal} clients. The rest aren't listed here, and searching won't find them.
+              </p>
             )}
 
             {clientView === 'accounts' && (filteredClients.length === 0 ? (

@@ -79,7 +79,7 @@ export const api = {
 
   getDashboard: (token) => apiFetch('/api/admin/dashboard', {}, token),
   getPayments: (token, params = {}) => apiFetch(`/api/admin/payments?${new URLSearchParams(params)}`, {}, token),
-  getClients: (token) => apiFetch('/api/admin/clients', {}, token),
+  getClients: (token, params = {}) => apiFetch(`/api/admin/clients?${new URLSearchParams(params)}`, {}, token),
   getGuests: (token, params = {}) => apiFetch(`/api/admin/guests?${new URLSearchParams(params)}`, {}, token),
   createClient: (body, token) => apiFetch('/api/admin/clients', { method: 'POST', body: JSON.stringify(body) }, token),
   getClient: (id, token) => apiFetch(`/api/admin/clients/${id}`, {}, token),
