@@ -86,6 +86,7 @@ export const api = {
   getGuests: (token, params = {}) => apiFetch(`/api/admin/guests?${new URLSearchParams(params)}`, {}, token),
   createClient: (body, token) => apiFetch('/api/admin/clients', { method: 'POST', body: JSON.stringify(body) }, token),
   getClient: (id, token) => apiFetch(`/api/admin/clients/${id}`, {}, token),
+  getClientSummary: (id, token) => apiFetch(`/api/admin/clients/${id}/summary`, {}, token),
   updateClient: (id, body, token) => apiFetch(`/api/admin/clients/${id}`, { method: 'PUT', body: JSON.stringify(body) }, token),
   deleteClient: (id, token) => apiFetch(`/api/admin/clients/${id}`, { method: 'DELETE' }, token),
   getClientNotes: (id, token) => apiFetch(`/api/admin/clients/${id}/notes`, {}, token),
@@ -94,5 +95,15 @@ export const api = {
   deleteClientNote: (id, noteId, token) => apiFetch(`/api/admin/clients/${id}/notes/${noteId}`, { method: 'DELETE' }, token),
   createCardSetup: (id, token) => apiFetch(`/api/admin/clients/${id}/card-setup`, { method: 'POST' }, token),
   getClientCards: (id, token) => apiFetch(`/api/admin/clients/${id}/cards`, {}, token),
+  // Client forms — waiver signing + consultation intake. The POSTs work
+  // signed-in or as a guest; pass the token when there is one so the row is
+  // linked to the account.
+  getWaiverText: () => apiFetch('/api/forms/waiver-text'),
+  submitWaiver: (body, token) => apiFetch('/api/forms/waiver', { method: 'POST', body: JSON.stringify(body) }, token),
+  submitConsultation: (body, token) => apiFetch('/api/forms/consultation', { method: 'POST', body: JSON.stringify(body) }, token),
+  getMyForms: (token) => apiFetch('/api/forms/mine', {}, token),
+  getForms: (token, params = {}) => apiFetch(`/api/forms?${new URLSearchParams(params)}`, {}, token),
+  getForm: (id, token) => apiFetch(`/api/forms/${id}`, {}, token),
+  deleteForm: (id, token) => apiFetch(`/api/forms/${id}`, { method: 'DELETE' }, token),
   updateUserRole: (id, role, token) => apiFetch(`/api/admin/profiles/${id}/role`, { method: 'PUT', body: JSON.stringify({ role }) }, token),
 };

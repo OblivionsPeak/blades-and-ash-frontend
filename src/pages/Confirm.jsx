@@ -55,10 +55,18 @@ export default function Confirm() {
         })()}
 
         <div style={styles.policyBox}>
+          <strong style={{ color: '#D8BC7E', fontSize: 13 }}>Before your visit</strong>
+          <p style={styles.policyText}>
+            First time with us? Please <Link to="/waiver" style={{ color: '#C8A24B' }}>sign the client agreement</Link> and
+            fill out the <Link to="/consultation" style={{ color: '#C8A24B' }}>consultation form</Link> — a couple of minutes on your phone.
+          </p>
+        </div>
+
+        <div style={styles.policyBox}>
           <strong style={{ color: '#D8BC7E', fontSize: 13 }}>Cancellation policy</strong>
           <p style={styles.policyText}>
-            Cancellations within 48 hours of your appointment are charged 50% of the service.
-            No-shows are charged 100% of the service.
+            Cancellations made less than 72 hours before your appointment are charged 50% of the service.
+            Same-day cancellations and no-shows are charged 100%. <Link to="/policies" style={{ color: '#C8A24B' }}>Full policy</Link>
           </p>
         </div>
 

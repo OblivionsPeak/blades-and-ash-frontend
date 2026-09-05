@@ -76,6 +76,8 @@ export default function Footer() {
         <div style={styles.links}>
           <Link to="/book" style={styles.link}>Book</Link>
           <Link to="/memberships" style={styles.link}>Memberships</Link>
+          <Link to="/forms" style={styles.link}>Client Forms</Link>
+          <Link to="/policies" style={styles.link}>Policies</Link>
           <a href={`mailto:${email}`} style={styles.link}>Contact</a>
         </div>
         <a href={`mailto:${email}`} style={styles.email}>{email}</a>

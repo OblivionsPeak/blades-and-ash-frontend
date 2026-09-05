@@ -240,7 +240,7 @@ input, textarea, select { color: var(--text); }
 
   /* Admin tables: let the grid scroll horizontally instead of squishing */
   .admin-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .admin-table-inner { min-width: 560px; }
+  .admin-table-inner { min-width: 820px; }
   .admin-disc-inner { min-width: 680px; }
 
   /* Admin availability rows stack their time inputs */
@@ -255,3 +255,64 @@ input, textarea, select { color: var(--text); }
   .confirm-card { padding: 32px 24px !important; }
   .profile-card { flex-direction: column; gap: 16px !important; padding: 20px !important; }
 }
+
+/* Choice chips — the tap-to-select answers on the client forms. The real
+   input is invisible but still focusable, so keyboard + screen readers work. */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { position: relative; display: inline-block; }
+.chip input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.chip span {
+  display: inline-block; padding: 8px 16px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface-2);
+  color: var(--text-muted); font-size: 14px; line-height: 1.3;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  user-select: none;
+}
+.chip:hover span { border-color: var(--accent-dark); color: var(--text); }
+.chip input:checked + span { background: var(--accent); border-color: var(--accent); color: #0E0E10; font-weight: 600; }
+.chip input:focus-visible + span { outline: 2px solid var(--accent-dark); outline-offset: 2px; }
+.chip input:disabled + span { opacity: 0.5; cursor: not-allowed; }
+
+/* Client form pages (waiver + consultation) */
+.form-page { max-width: 760px; margin: 0 auto; padding: 56px 24px 96px; }
+.form-page-head { text-align: center; margin-bottom: 40px; }
+.form-page-label { display: block; color: var(--accent); font-size: 12px; letter-spacing: 0.22em; margin-bottom: 12px; }
+.form-page-title { font-size: 40px; margin-bottom: 8px; }
+.form-page-sub { color: var(--text-muted); font-size: 16px; font-style: italic; font-family: 'Cormorant', serif; font-size: 19px; }
+.form-section { margin-bottom: 36px; }
+.form-section-title {
+  font-family: 'Cormorant', serif; font-size: 22px; font-weight: 600; color: var(--accent-soft);
+  padding-bottom: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border);
+}
+.form-q { display: block; font-size: 15px; color: var(--text); margin-bottom: 8px; }
+.form-hint { display: block; font-size: 13px; color: var(--text-muted); margin: -4px 0 8px; font-style: italic; }
+.form-field { margin-bottom: 20px; }
+.form-conditional { border-left: 2px solid var(--accent-dark); padding-left: 16px; margin-top: 14px; }
+.form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.form-row > .form-field { flex: 1; min-width: 220px; }
+.form-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--accent-dark), transparent); margin: 36px 0; }
+.agreement { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+.agreement h3 { font-family: 'Jost', sans-serif; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 26px 0 8px; }
+.agreement h3:first-of-type { margin-top: 0; }
+.agreement p { font-size: 15px; line-height: 1.7; color: #D6CFC5; }
+.agreement ul { margin: 8px 0 0 20px; font-size: 15px; line-height: 1.7; color: #D6CFC5; }
+.agree-row { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.5; cursor: pointer; }
+.agree-row input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--accent); flex: 0 0 auto; }
+@media (max-width: 480px) {
+  .form-page { padding: 36px 16px 72px; }
+  .form-page-title { font-size: 30px; }
+  .agreement { padding: 20px 16px; }
+}
+
+/* Printing a form: only the printable block, on white. */
+@media print {
+  body { background: #fff !important; color: #111 !important; }
+  nav, footer, .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  .form-page { padding: 0; max-width: none; }
+  .agreement { background: #fff; border: none; padding: 0; }
+  .agreement p, .agreement ul { color: #111; }
+  .agreement h3, .form-page-label, .form-section-title { color: #111; }
+  .form-page-title, .form-page-sub { color: #111; }
+}
+.print-only { display: none; }

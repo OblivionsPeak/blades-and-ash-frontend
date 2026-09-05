@@ -15,6 +15,10 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Admin = lazy(() => import('./pages/Admin'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Pay = lazy(() => import('./pages/Pay'));
+const Forms = lazy(() => import('./pages/Forms'));
+const Waiver = lazy(() => import('./pages/Waiver'));
+const Consultation = lazy(() => import('./pages/Consultation'));
+const Policies = lazy(() => import('./pages/Policies'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 export default function App() {
@@ -34,6 +38,10 @@ export default function App() {
             <Route path="/admin" element={<Admin />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/pay/:id" element={<Pay />} />
+            <Route path="/forms" element={<Forms />} />
+            <Route path="/waiver" element={<Waiver />} />
+            <Route path="/consultation" element={<Consultation />} />
+            <Route path="/policies" element={<Policies />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

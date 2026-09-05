@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import { format } from 'date-fns';
@@ -20,6 +20,8 @@ export default function Profile() {
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
+  // Forms on file (waiver + consultation), so the client can see what's done.
+  const [myForms, setMyForms] = useState(null);
 
   // Reschedule modal
   const [rsAppt, setRsAppt] = useState(null);
@@ -39,6 +41,7 @@ export default function Profile() {
       .then(data => setAppointments(data.appointments || data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
+    api.getMyForms(session.access_token).then(setMyForms).catch(() => {});
   }, [user, profile]);
 
   async function handleCancel(id) {
@@ -135,6 +138,24 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* Forms on file */}
+        <h2 style={styles.sectionTitle}>Your Forms</h2>
+        <div className="grid-2" style={{ gap: 12, marginBottom: 40 }}>
+          <FormStatus
+            title="Client Agreement & Waiver"
+            record={myForms?.forms?.waiver}
+            stale={myForms?.forms?.waiver && myForms?.current_waiver_version && myForms.forms.waiver.agreement_version !== myForms.current_waiver_version}
+            to="/waiver"
+            cta="Read & sign"
+          />
+          <FormStatus
+            title="Consultation Form"
+            record={myForms?.forms?.consultation}
+            to="/consultation"
+            cta="Fill it out"
+          />
+        </div>
+
         {/* Upcoming */}
         <h2 style={styles.sectionTitle}>Upcoming Appointments</h2>
         {loading ? (
@@ -195,6 +216,22 @@ export default function Profile() {
           </div>
         )}
       </Modal>
+    </div>
+  );
+}
+
+function FormStatus({ title, record, stale, to, cta }) {
+  const done = !!record && !stale;
+  const when = record ? new Date(record.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null;
+  return (
+    <div className="card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div>
+        <div style={{ fontWeight: 500, fontSize: 15 }}>{title}</div>
+        <div style={{ fontSize: 13, color: done ? '#6FCF97' : '#D8BC7E', marginTop: 2 }}>
+          {done ? `✓ On file · ${when}` : stale ? `Signed ${when} · an updated version needs your signature` : 'Not on file yet'}
+        </div>
+      </div>
+      <Link to={to} className={`btn btn-sm ${done ? 'btn-ghost' : 'btn-primary'}`}>{done ? 'View / redo' : cta}</Link>
     </div>
   );
 }

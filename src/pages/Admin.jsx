@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { api } from '../api';
@@ -7,6 +7,8 @@ import { useAuth } from '../AuthContext';
 import Modal from '../components/Modal';
 import CardSetupForm from '../components/CardSetupForm';
 import BusinessInfoTab from '../components/BusinessInfoTab';
+import FormDetail, { KIND_LABEL, fmtWhen, printForm } from '../components/FormDetail';
+import ClientProfile from '../components/ClientProfile';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
@@ -41,7 +43,13 @@ function formatTimeOffWindow(b) {
 export default function Admin() {
   const { user, profile, session } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState('services');
+  // /admin?tab=forms&form=<id> — the owner alert email links straight to a
+  // submission. Read once, then cleared so a refresh doesn't re-open it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState(() => {
+    const t = searchParams.get('tab');
+    return ['services', 'clients', 'team', 'staff', 'availability', 'discounts', 'payments', 'gallery', 'business', 'forms'].includes(t) ? t : 'services';
+  });
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
   const [clients, setClients] = useState([]);
@@ -117,6 +125,17 @@ export default function Admin() {
   const [editingNote, setEditingNote] = useState(null); // { id, body }
   // Card-on-file modal: which client, the SetupIntent secret, saved cards
   const [cardModal, setCardModal] = useState(null); // { client, clientSecret, cards, loading }
+  // Client profile modal: the /summary payload for one client
+  const [profileModal, setProfileModal] = useState(null); // { client, summary, loading }
+
+  // Forms tab — signed waivers + consultation submissions, server-searched
+  const [forms, setForms] = useState([]);
+  const [formsTotal, setFormsTotal] = useState(0);
+  const [formsKind, setFormsKind] = useState('all'); // all | waiver | consultation
+  const [formsSearch, setFormsSearch] = useState('');
+  const [formsLoading, setFormsLoading] = useState(false);
+  const [formsError, setFormsError] = useState('');
+  const [formModal, setFormModal] = useState(null); // { form, loading }
 
   // Gallery tab
   const [gallery, setGallery] = useState([]);
@@ -154,6 +173,23 @@ export default function Admin() {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'gallery') loadGallery(); }, [tab]);
+
+  // Forms tab: reload on open and whenever the filter/search changes (debounced).
+  useEffect(() => {
+    if (tab !== 'forms') return;
+    const t = setTimeout(() => { loadForms(); }, formsSearch ? 300 : 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, formsKind, formsSearch, session]);
+
+  // Deep link from the owner alert email: open the submission it points at.
+  useEffect(() => {
+    const id = searchParams.get('form');
+    if (!id || !session?.access_token) return;
+    setSearchParams({}, { replace: true });
+    openFormModal(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, session]);
 
   // Guests load once, the first time the Clients tab is opened — the tab's own
   // render never waits on it, and searching filters the loaded list locally
@@ -615,6 +651,68 @@ export default function Admin() {
 
   function notify(m) { setMsg(m); setTimeout(() => setMsg(''), 3000); }
 
+  // ── Forms (waivers + consultations) ─────────────────────────
+  async function loadForms() {
+    const token = session?.access_token;
+    if (!token) return;
+    setFormsLoading(true);
+    setFormsError('');
+    try {
+      const params = { limit: 200, offset: 0 };
+      if (formsKind !== 'all') params.kind = formsKind;
+      if (formsSearch.trim()) params.search = formsSearch.trim();
+      const res = await api.getForms(token, params);
+      setForms(res.forms || []);
+      setFormsTotal(typeof res.total === 'number' ? res.total : (res.forms || []).length);
+    } catch (e) {
+      setFormsError(e.message || 'Could not load forms.');
+    } finally {
+      setFormsLoading(false);
+    }
+  }
+
+  async function openFormModal(id) {
+    setFormModal({ form: null, loading: true });
+    try {
+      const res = await api.getForm(id, session?.access_token);
+      setFormModal({ form: res.form, loading: false });
+    } catch (e) {
+      setFormModal(null);
+      notify(e.message || 'Could not open that form.');
+    }
+  }
+
+  async function deleteForm(f) {
+    if (!confirm(`Delete this ${KIND_LABEL[f.kind] || 'form'} from ${f.client_name}? This can't be undone.`)) return;
+    try {
+      await api.deleteForm(f.id, session?.access_token);
+      setForms(list => list.filter(x => x.id !== f.id));
+      setFormsTotal(n => Math.max(0, n - 1));
+      if (formModal?.form?.id === f.id) setFormModal(null);
+      notify('Form deleted.');
+    } catch (e) {
+      notify(e.message || 'Could not delete the form.');
+    }
+  }
+
+  // ── Client profile + book now ───────────────────────────────
+  async function openClientProfile(client) {
+    setProfileModal({ client, summary: null, loading: true });
+    try {
+      const res = await api.getClientSummary(client.id, session?.access_token);
+      setProfileModal({ client, summary: res, loading: false });
+    } catch (e) {
+      setProfileModal(null);
+      notify(e.message || 'Could not load that client.');
+    }
+  }
+
+  // Booking lives on the Dashboard (calendar + open times). Hand the client
+  // over and the new-appointment modal opens there with them already chosen.
+  function bookNow(client) {
+    navigate(`/dashboard?book=${client.id}`);
+  }
+
   function openAddClient() {
     setEditClient(null);
     setClientForm({ full_name: '', email: '', phone: '' });
@@ -810,6 +908,7 @@ export default function Admin() {
         <div className="tab-bar">
           <button className={`tab-btn ${tab === 'services' ? 'active' : ''}`} onClick={() => setTab('services')}>Services</button>
           <button className={`tab-btn ${tab === 'clients' ? 'active' : ''}`} onClick={() => setTab('clients')}>Clients</button>
+          <button className={`tab-btn ${tab === 'forms' ? 'active' : ''}`} onClick={() => setTab('forms')}>Forms</button>
           <button className={`tab-btn ${tab === 'team' ? 'active' : ''}`} onClick={() => setTab('team')}>Team</button>
           <button className={`tab-btn ${tab === 'staff' ? 'active' : ''}`} onClick={() => setTab('staff')}>Staff & Services</button>
           <button className={`tab-btn ${tab === 'availability' ? 'active' : ''}`} onClick={() => setTab('availability')}>Availability</button>
@@ -939,20 +1038,23 @@ export default function Admin() {
             ) : (
               <div className="admin-table-scroll" style={styles.table}>
                 <div className="admin-table-inner" style={styles.tableHead}>
-                  <span>Client</span><span>Phone</span><span>Card on file</span><span>Hair notes</span><span>Actions</span>
+                  <span>Client</span><span>Phone</span><span>Card</span><span>Forms</span><span>Actions</span>
                 </div>
                 {filteredClients.map(c => (
                   <div key={c.id} className="admin-table-inner" style={styles.tableRow}>
-                    <div style={styles.svcName}>{c.full_name || '(no name)'}</div>
+                    <button onClick={() => openClientProfile(c)} style={styles.clientNameBtn} title="Open profile">
+                      {c.full_name || '(no name)'}
+                    </button>
                     <span style={styles.cell}>{c.phone || '—'}</span>
                     <span style={styles.cell}>{c.stripe_customer_id ? 'Yes' : '—'}</span>
-                    <span>
-                      <button onClick={() => openNotesModal(c)} style={styles.editBtn}>Notes</button>
+                    <span style={{ ...styles.cell, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ color: c.waiver_signed_at ? '#6FCF97' : '#9A938A' }}>{c.waiver_signed_at ? '✓ Waiver' : '— Waiver'}</span>
+                      <span style={{ color: c.consultation_at ? '#6FCF97' : '#9A938A' }}>{c.consultation_at ? '✓ Consult' : '— Consult'}</span>
                     </span>
-                    <div style={styles.actions}>
-                      <button onClick={() => openCardModal(c)} style={styles.editBtn}>
-                        {c.stripe_customer_id ? 'Manage card' : 'Add card'}
-                      </button>
+                    <div style={{ ...styles.actions, flexWrap: 'wrap' }}>
+                      <button onClick={() => bookNow(c)} style={styles.bookNowBtn}>Book now</button>
+                      <button onClick={() => openClientProfile(c)} style={styles.editBtn}>Profile</button>
+                      <button onClick={() => openNotesModal(c)} style={styles.editBtn}>Notes</button>
                       <button onClick={() => openEditClient(c)} style={styles.editBtn}>Edit</button>
                       <button onClick={() => deleteClient(c)} style={styles.deleteBtn}>Delete</button>
                     </div>
@@ -960,6 +1062,64 @@ export default function Admin() {
                 ))}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Forms Tab — signed waivers and consultation intakes */}
+        {tab === 'forms' && (
+          <div>
+            <p style={{ fontSize: 14, color: '#9A938A', marginBottom: 20, lineHeight: 1.6, maxWidth: 680 }}>
+              Everything clients submit from <strong>bladeandash.com/forms</strong>: the signed Client Agreement &amp; Waiver and the
+              Consultation form. You get an email when one lands. Signed-in clients are linked to their account; anyone can
+              submit without one, so search by name if someone isn't linked yet.
+            </p>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              {[['all', 'All'], ['waiver', 'Waivers'], ['consultation', 'Consultations']].map(([k, label]) => (
+                <button key={k} onClick={() => setFormsKind(k)} style={formsKind === k ? styles.addBtn : styles.importBtn}>{label}</button>
+              ))}
+              <input
+                className="form-input"
+                style={{ maxWidth: 280, marginLeft: 'auto' }}
+                placeholder="Search by name, email, or phone…"
+                value={formsSearch}
+                onChange={e => setFormsSearch(e.target.value)}
+              />
+            </div>
+
+            {formsError && <div className="alert alert-error" style={{ marginBottom: 16 }}>{formsError}</div>}
+            {formsLoading && forms.length === 0 ? (
+              <div className="loading-center"><div className="spinner" /></div>
+            ) : forms.length === 0 ? (
+              <p style={{ fontSize: 14, color: '#9A938A' }}>
+                {formsSearch.trim() || formsKind !== 'all' ? 'Nothing matches that filter.' : 'No forms submitted yet. Share bladeandash.com/forms with your clients.'}
+              </p>
+            ) : (
+              <div className="admin-table-scroll" style={styles.table}>
+                <div className="admin-table-inner" style={styles.formsHead}>
+                  <span>Submitted</span><span>Client</span><span>Form</span><span>Contact</span><span>Actions</span>
+                </div>
+                {forms.map(f => (
+                  <div key={f.id} className="admin-table-inner" style={styles.formsRow}>
+                    <span style={styles.cell}>{fmtWhen(f.created_at)}</span>
+                    <div>
+                      <div style={styles.svcName}>{f.client_name}</div>
+                      {!f.client_id && <div style={{ fontSize: 11.5, color: '#9A938A' }}>not linked to an account</div>}
+                    </div>
+                    <span style={{ ...styles.cell, color: f.kind === 'waiver' ? '#D8BC7E' : '#EDE7DB' }}>{KIND_LABEL[f.kind] || f.kind}</span>
+                    <span style={{ ...styles.cell, wordBreak: 'break-all' }}>{f.client_email || f.client_phone || '—'}</span>
+                    <div style={styles.actions}>
+                      <button onClick={() => openFormModal(f.id)} style={styles.editBtn}>View</button>
+                      <button onClick={() => deleteForm(f)} style={styles.deleteBtn}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+                {formsTotal > forms.length && (
+                  <p style={{ fontSize: 13, color: '#C8A24B', padding: '12px 20px' }}>
+                    Showing the {forms.length} most recent of {formsTotal}. Search to find older ones.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1404,6 +1564,46 @@ export default function Admin() {
         </div>
       </Modal>
 
+      {/* Client Profile Modal — contact, forms, appointments + what's paid */}
+      <Modal open={!!profileModal} onClose={() => setProfileModal(null)} title={profileModal?.client?.full_name || 'Client'}>
+        {profileModal?.loading ? (
+          <div className="loading-center"><div className="spinner" /></div>
+        ) : profileModal?.summary && (
+          <ClientProfile
+            summary={profileModal.summary}
+            onBook={bookNow}
+            onViewForm={(id) => { setProfileModal(null); openFormModal(id); }}
+            onNotes={(c) => { setProfileModal(null); openNotesModal(c); }}
+            onCard={(c) => { setProfileModal(null); openCardModal(c); }}
+            onEdit={(c) => { setProfileModal(null); openEditClient(c); }}
+          />
+        )}
+      </Modal>
+
+      {/* Form Detail Modal — one waiver or consultation in full */}
+      <Modal
+        open={!!formModal}
+        onClose={() => setFormModal(null)}
+        title={formModal?.form ? `${KIND_LABEL[formModal.form.kind] || 'Form'} — ${formModal.form.client_name}` : 'Form'}
+      >
+        {formModal?.loading ? (
+          <div className="loading-center"><div className="spinner" /></div>
+        ) : formModal?.form && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <FormDetail form={formModal.form} />
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid #2A2A2A', paddingTop: 16 }}>
+              <button onClick={() => printForm(formModal.form)} style={styles.editBtn}>Print / save PDF</button>
+              {formModal.form.client_id && (
+                <button onClick={() => { const id = formModal.form.client_id; const name = formModal.form.client_name; setFormModal(null); openClientProfile({ id, full_name: name }); }} style={styles.editBtn}>
+                  Open client profile
+                </button>
+              )}
+              <button onClick={() => deleteForm(formModal.form)} style={{ ...styles.deleteBtn, marginLeft: 'auto' }}>Delete</button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Client Service Notes Modal */}
       <Modal open={!!notesModal} onClose={() => setNotesModal(null)} title={`Hair Notes — ${notesModal?.client?.full_name || ''}`}>
         {notesModal?.loading ? (
@@ -1561,8 +1761,12 @@ const styles = {
   addBtn: { padding: '10px 24px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10', border: 'none', fontWeight: 700, cursor: 'pointer', fontSize: 14 },
   importBtn: { padding: '10px 20px', borderRadius: 999, background: 'transparent', color: '#C8A24B', border: '1px solid #C8A24B', fontWeight: 600, cursor: 'pointer', fontSize: 14 },
   table: { background: '#16161A', borderRadius: 12, border: '1px solid #2A2A2A', overflow: 'hidden' },
-  tableHead: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
-  tableRow: { display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
+  tableHead: { display: 'grid', gridTemplateColumns: '1.8fr 1fr 0.6fr 1fr 2.6fr', gap: 8, padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
+  tableRow: { display: 'grid', gridTemplateColumns: '1.8fr 1fr 0.6fr 1fr 2.6fr', gap: 8, padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
+  formsHead: { display: 'grid', gridTemplateColumns: '1.3fr 1.5fr 1.1fr 1.6fr 1fr', gap: 8, padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
+  formsRow: { display: 'grid', gridTemplateColumns: '1.3fr 1.5fr 1.1fr 1.6fr 1fr', gap: 8, padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
+  clientNameBtn: { background: 'none', border: 'none', padding: 0, textAlign: 'left', fontWeight: 600, fontSize: 15, color: '#EDE7DB', cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', textDecorationColor: '#3a352c', textUnderlineOffset: 4 },
+  bookNowBtn: { padding: '5px 14px', borderRadius: 999, background: '#C8A24B', color: '#0E0E10', border: '1px solid #C8A24B', fontSize: 12, fontWeight: 700, cursor: 'pointer' },
   discHead: { display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr 1fr 0.9fr 1fr', padding: '12px 20px', background: '#0E0E10', color: '#C8A24B', fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' },
   discRow: { display: 'grid', gridTemplateColumns: '1.2fr 1fr 1.2fr 1fr 0.9fr 1fr', padding: '16px 20px', borderBottom: '1px solid #2A2A2A', alignItems: 'center' },
   pillActive: { fontSize: 12, color: '#9ad9b4', border: '1px solid rgba(154,217,180,0.4)', borderRadius: 999, padding: '3px 10px' },

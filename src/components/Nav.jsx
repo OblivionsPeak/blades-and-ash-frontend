@@ -20,6 +20,7 @@ export default function Nav() {
     ? [
         { to: '/book', label: 'Book' },
         { to: '/memberships', label: 'Memberships' },
+        { to: '/forms', label: 'Forms' },
         ...(isStaff ? [{ to: '/dashboard', label: 'Dashboard' }] : []),
         ...(isAdmin ? [{ to: '/admin', label: 'Admin' }] : []),
         { to: '/profile', label: 'My Appointments' },
@@ -28,6 +29,7 @@ export default function Nav() {
         { to: '/', label: 'Home' },
         { to: '/book', label: 'Book' },
         { to: '/memberships', label: 'Memberships' },
+        { to: '/forms', label: 'Forms' },
       ];
 
   return (

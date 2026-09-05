@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import Calendar from 'react-calendar';
@@ -23,7 +23,7 @@ const STEP_LABELS = {
   confirm: 'Confirm',
 };
 
-const CANCELLATION_POLICY = 'Cancellations within 48 hours of your appointment are charged 50% of the service. No-shows are charged 100% of the service.';
+const CANCELLATION_POLICY = 'Cancellations made less than 72 hours before your appointment are charged 50% of the service. Same-day cancellations and no-shows are charged 100% of the service, to the card on file.';
 
 export default function Book() {
   const { user, profile, session } = useAuth();
@@ -515,7 +515,9 @@ export default function Book() {
               {/* Cancellation policy */}
               <div style={styles.policyBox}>
                 <strong style={{ color: '#D8BC7E' }}>Cancellation policy</strong>
-                <p style={{ margin: '6px 0 0', color: '#9A938A', fontSize: 13.5, lineHeight: 1.6 }}>{CANCELLATION_POLICY}</p>
+                <p style={{ margin: '6px 0 0', color: '#9A938A', fontSize: 13.5, lineHeight: 1.6 }}>
+                  {CANCELLATION_POLICY} <Link to="/policies" target="_blank" rel="noopener" style={{ color: '#C8A24B' }}>Full policy</Link>
+                </p>
               </div>
               <label style={styles.policyCheck}>
                 <input type="checkbox" checked={agreedPolicy} onChange={e => setAgreedPolicy(e.target.checked)} style={{ accentColor: '#C8A24B', marginTop: 3 }} />
@@ -568,8 +570,8 @@ export default function Book() {
               <h2 style={styles.stepTitle}>Save a Card to Confirm</h2>
               <p style={{ color: '#9A938A', marginBottom: 24, fontSize: 14, lineHeight: 1.6 }}>
                 We don't charge you now — your card is only kept on file to hold your appointment.
-                You'll pay for your service at the salon. Per the cancellation policy, no-shows are
-                charged 100% and cancellations within 48 hours are charged 50%, to the card on file.
+                You'll pay for your service at the salon. Per the cancellation policy, same-day cancellations and
+                no-shows are charged 100%, and cancellations with less than 72 hours' notice are charged 50%, to the card on file.
               </p>
               <Elements stripe={stripePromise} options={{ clientSecret: setupClientSecret }}>
                 <CardSetupForm

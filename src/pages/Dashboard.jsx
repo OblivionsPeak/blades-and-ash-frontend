@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format, startOfDay, addDays, isSameDay, startOfMonth, endOfMonth } from 'date-fns';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
@@ -19,6 +19,9 @@ const STATUS_OPTIONS = ['pending', 'confirmed', 'completed', 'no_show', 'cancell
 export default function Dashboard() {
   const { user, profile, session } = useAuth();
   const navigate = useNavigate();
+  // /dashboard?book=<clientId> — arrive from Admin → Clients → "Book now" with
+  // the new-appointment modal already open for that client.
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [appointments, setAppointments] = useState([]);
   // Which month the little calendar is showing, and a per-day summary for it so
@@ -185,21 +188,36 @@ export default function Dashboard() {
       .catch(() => {});
   }, [session, isAdmin]);
 
-  async function openNewAppt() {
+  // Open the booking modal once the session is ready if a client was handed in
+  // on the URL, then drop the param so a refresh doesn't re-open it.
+  useEffect(() => {
+    const clientId = searchParams.get('book');
+    if (!clientId || !session?.access_token || !user || !isStaff) return;
+    setSearchParams({}, { replace: true });
+    openNewAppt(clientId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, session, user, isStaff]);
+
+  async function openNewAppt(presetClientId = '') {
     const token = session?.access_token;
     setNaErr('');
-    setNaForm({ client_id: '', staff_id: user.id, service_ids: [], date: '', slot: '' });
+    setNaForm({ client_id: presetClientId || '', staff_id: user.id, service_ids: [], date: '', slot: '' });
     setNaSlots([]);
     setNaClientSearch('');
     setNewApptOpen(true);
     try {
-      const [cl, svcs, stf] = await Promise.all([
+      const [cl, svcs, stf, preset] = await Promise.all([
         api.getClients(token, { limit: 200 }).catch(() => ({ clients: [] })),
         api.getServices(),
         api.getStaff(),
+        // The preset client may sit past the first page — fetch them directly
+        // so the dropdown always has the row it's pointing at.
+        presetClientId ? api.getClient(presetClientId, token).then(r => r.client).catch(() => null) : Promise.resolve(null),
       ]);
-      setNaClients(cl.clients || []);
-      setNaClientsTotal(typeof cl.total === 'number' ? cl.total : (cl.clients || []).length);
+      let rows = cl.clients || [];
+      if (preset && !rows.some(c => c.id === preset.id)) rows = [preset, ...rows];
+      setNaClients(rows);
+      setNaClientsTotal(typeof cl.total === 'number' ? cl.total : rows.length);
       setNaServices(svcs);
       setNaStaff(stf);
       // Default the stylist sensibly: the signed-in user if they're bookable,
