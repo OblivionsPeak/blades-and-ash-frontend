@@ -69,7 +69,11 @@ export default function Dashboard() {
 
   // New-appointment modal (book on behalf of a client)
   const [newApptOpen, setNewApptOpen] = useState(false);
+  // The clients endpoint is capped per request, so keep the true count and let
+  // her search the server for anyone past the first page.
   const [naClients, setNaClients] = useState([]);
+  const [naClientsTotal, setNaClientsTotal] = useState(0);
+  const [naClientSearch, setNaClientSearch] = useState('');
   const [naServices, setNaServices] = useState([]);
   const [naStaff, setNaStaff] = useState([]);
   const [naForm, setNaForm] = useState({ client_id: '', staff_id: '', service_ids: [], date: '', slot: '' });
@@ -186,14 +190,16 @@ export default function Dashboard() {
     setNaErr('');
     setNaForm({ client_id: '', staff_id: user.id, service_ids: [], date: '', slot: '' });
     setNaSlots([]);
+    setNaClientSearch('');
     setNewApptOpen(true);
     try {
       const [cl, svcs, stf] = await Promise.all([
-        api.getClients(token).catch(() => ({ clients: [] })),
+        api.getClients(token, { limit: 200 }).catch(() => ({ clients: [] })),
         api.getServices(),
         api.getStaff(),
       ]);
       setNaClients(cl.clients || []);
+      setNaClientsTotal(typeof cl.total === 'number' ? cl.total : (cl.clients || []).length);
       setNaServices(svcs);
       setNaStaff(stf);
       // Default the stylist sensibly: the signed-in user if they're bookable,
@@ -204,6 +210,25 @@ export default function Dashboard() {
       setNaErr(e.message || 'Could not load booking data.');
     }
   }
+
+  // Client lookup runs on the server so the dropdown can reach anyone, not just
+  // the first page. Debounced, and only while the modal is open.
+  useEffect(() => {
+    if (!newApptOpen) return;
+    const token = session?.access_token;
+    if (!token) return;
+    const t = setTimeout(() => {
+      const params = { limit: 200, offset: 0 };
+      if (naClientSearch.trim()) params.search = naClientSearch.trim();
+      api.getClients(token, params)
+        .then(cl => {
+          setNaClients(cl.clients || []);
+          setNaClientsTotal(typeof cl.total === 'number' ? cl.total : (cl.clients || []).length);
+        })
+        .catch(() => {});
+    }, 300);
+    return () => clearTimeout(t);
+  }, [naClientSearch, newApptOpen, session]);
 
   // Fetch slots whenever staff + services + date are all chosen.
   useEffect(() => {
@@ -636,6 +661,13 @@ export default function Dashboard() {
 
           <div className="form-group">
             <label className="form-label">Client</label>
+            <input
+              className="form-input"
+              style={{ marginBottom: 8 }}
+              placeholder="Search by name or phone…"
+              value={naClientSearch}
+              onChange={e => setNaClientSearch(e.target.value)}
+            />
             <select className="form-select" value={naForm.client_id}
               onChange={e => setNaForm(f => ({ ...f, client_id: e.target.value }))}>
               <option value="">— Choose a client —</option>
@@ -644,7 +676,9 @@ export default function Dashboard() {
               ))}
             </select>
             <p style={{ fontSize: 12, color: '#9A938A', marginTop: 4 }}>
-              Client not listed? Add them first in Admin → Clients.
+              {!naClientSearch.trim() && naClientsTotal > naClients.length
+                ? `Showing ${naClients.length} of ${naClientsTotal} clients — search above to find anyone else.`
+                : 'Client not listed? Add them first in Admin → Clients.'}
             </p>
           </div>
 

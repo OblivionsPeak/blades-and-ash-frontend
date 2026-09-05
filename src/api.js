@@ -79,7 +79,10 @@ export const api = {
 
   getDashboard: (token) => apiFetch('/api/admin/dashboard', {}, token),
   getPayments: (token, params = {}) => apiFetch(`/api/admin/payments?${new URLSearchParams(params)}`, {}, token),
-  getClients: (token) => apiFetch('/api/admin/clients', {}, token),
+  // The server caps this list (default 50, max 200) and returns the true count
+  // as `total`. Always pass a limit and honour `total` — a silently truncated
+  // list makes newly added clients look like they vanished.
+  getClients: (token, params = {}) => apiFetch(`/api/admin/clients?${new URLSearchParams(params)}`, {}, token),
   getGuests: (token, params = {}) => apiFetch(`/api/admin/guests?${new URLSearchParams(params)}`, {}, token),
   createClient: (body, token) => apiFetch('/api/admin/clients', { method: 'POST', body: JSON.stringify(body) }, token),
   getClient: (id, token) => apiFetch(`/api/admin/clients/${id}`, {}, token),

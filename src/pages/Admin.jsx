@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -11,6 +11,9 @@ import BusinessInfoTab from '../components/BusinessInfoTab';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+// The clients endpoint caps at 200 per request. Ask for the maximum, then lean
+// on server-side search for anyone past it.
+const CLIENT_PAGE = 200;
 
 // Format a YYYY-MM-DD range for display. Dates are parsed as local (append
 // T00:00:00) so the calendar day isn't shifted by the timezone offset.
@@ -82,12 +85,23 @@ export default function Admin() {
   // Staff services
   const [staffServices, setStaffServices] = useState({});
 
+  // Team tab — staff and admins are listed outright. Clients are only reachable
+  // by searching for them, so a full client book doesn't drown out the team.
+  const [promoteSearch, setPromoteSearch] = useState('');
+  const [promoteResults, setPromoteResults] = useState([]);
+  const [promoteLoading, setPromoteLoading] = useState(false);
+  const [promoteSearched, setPromoteSearched] = useState(false);
+
   // Clients tab
   const [clientModal, setClientModal] = useState(false);
   const [editClient, setEditClient] = useState(null); // null = adding a new client
   const [clientForm, setClientForm] = useState({ full_name: '', email: '', phone: '' });
   const [savingClient, setSavingClient] = useState(false);
   const [clientSearch, setClientSearch] = useState('');
+  // The account list is server-paged and server-searched: `clients` holds at
+  // most CLIENT_PAGE rows, `clientsTotal` is how many exist in total.
+  const [clientsTotal, setClientsTotal] = useState(0);
+  const [clientsLoading, setClientsLoading] = useState(false);
   // Clients tab has two views: account holders ('accounts') and people who
   // booked without an account ('guests'). Accounts stays the default.
   const [clientView, setClientView] = useState('accounts');
@@ -120,13 +134,15 @@ export default function Admin() {
     Promise.all([
       api.getServices(),
       api.getStaff(),
-      api.getClients(token).catch(() => ({ clients: [] })),
+      api.getClients(token, { limit: CLIENT_PAGE }).catch(() => ({ clients: [] })),
       api.getDiscounts(token).catch(() => []),
     ])
       .then(([svcs, stf, cl, disc]) => {
         setServices(svcs);
         setStaff(stf);
-        setClients(cl.clients || cl || []);
+        const rows = cl.clients || cl || [];
+        setClients(rows);
+        setClientsTotal(typeof cl.total === 'number' ? cl.total : rows.length);
         setDiscounts(disc.discounts || disc || []);
       })
       .catch(() => {})
@@ -144,6 +160,26 @@ export default function Admin() {
   // rather than firing a request per keystroke.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (tab === 'clients') loadGuests(); }, [tab, session]);
+
+  // Account search runs on the server, so it reaches clients past the page cap.
+  // Debounced so typing doesn't fire a request per keystroke. Guests are fully
+  // loaded up front and still filter locally.
+  const clientSearchFirstRun = useRef(true);
+  useEffect(() => {
+    if (clientSearchFirstRun.current) { clientSearchFirstRun.current = false; return; }
+    if (clientView !== 'accounts') return;
+    const t = setTimeout(() => { loadClients(clientSearch); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientSearch, clientView, session]);
+
+  // Same treatment for the Team tab's promote lookup.
+  useEffect(() => {
+    if (tab !== 'team') return;
+    const t = setTimeout(() => { searchPromotable(promoteSearch); }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promoteSearch, tab, session]);
 
   async function loadGuests() {
     const token = session?.access_token;
@@ -223,11 +259,54 @@ export default function Admin() {
     }
   }
 
-  async function refreshTeam() {
+  // Load the account list from the server, honouring whatever is in the search
+  // box. Searching server-side is what lets her reach clients beyond the page
+  // cap — filtering the loaded page locally would hide them permanently.
+  async function loadClients(search = clientSearch) {
     const token = session?.access_token;
-    const [stf, cl] = await Promise.all([api.getStaff(), api.getClients(token).catch(() => ({ clients: [] }))]);
+    if (!token) return;
+    setClientsLoading(true);
+    try {
+      const params = { limit: CLIENT_PAGE, offset: 0 };
+      if (search.trim()) params.search = search.trim();
+      const res = await api.getClients(token, params);
+      const rows = res.clients || res || [];
+      setClients(rows);
+      setClientsTotal(typeof res.total === 'number' ? res.total : rows.length);
+    } catch {
+      // Leave the previous list in place rather than blanking the tab.
+    } finally {
+      setClientsLoading(false);
+    }
+  }
+
+  async function refreshTeam() {
+    const stf = await api.getStaff();
     setStaff(stf);
-    setClients(cl.clients || cl || []);
+    await loadClients();
+    // Keep any open promote search in step with the new roles.
+    if (promoteSearch.trim()) await searchPromotable(promoteSearch);
+  }
+
+  // Look up clients by name or phone so one can be promoted to staff/admin.
+  async function searchPromotable(search) {
+    const token = session?.access_token;
+    if (!token || !search.trim()) {
+      setPromoteResults([]);
+      setPromoteSearched(false);
+      return;
+    }
+    setPromoteLoading(true);
+    try {
+      const res = await api.getClients(token, { limit: 25, offset: 0, search: search.trim() });
+      setPromoteResults(res.clients || res || []);
+      setPromoteSearched(true);
+    } catch {
+      setPromoteResults([]);
+      setPromoteSearched(true);
+    } finally {
+      setPromoteLoading(false);
+    }
   }
 
   async function changeRole(id, role) {
@@ -575,7 +654,11 @@ export default function Admin() {
         notify('Client updated.');
       } else {
         const res = await api.createClient(body, token);
-        await refreshTeam();
+        // Once the book is bigger than one page, a new client can land past the
+        // cap and look like the add silently failed. Search for them instead so
+        // she always sees the person she just created.
+        if (clientsTotal >= CLIENT_PAGE) setClientSearch(body.full_name);
+        else await refreshTeam();
         setClientModal(false);
         setClientForm({ full_name: '', email: '', phone: '' });
         notify('Client added.');
@@ -676,11 +759,35 @@ export default function Admin() {
     await refreshTeam();
   }
 
-  const filteredClients = clientSearch.trim()
-    ? clients.filter(c =>
-        (c.full_name || '').toLowerCase().includes(clientSearch.trim().toLowerCase())
-        || (c.phone || '').includes(clientSearch.trim()))
-    : clients;
+  // Accounts are already filtered by the server — re-filtering here would drop
+  // rows the server matched on fields the local check doesn't know about.
+  const filteredClients = clients;
+
+  // One row of the Team tab: a person plus their role dropdown. Shared by the
+  // staff list and the promote-a-client search results.
+  const renderRoleRow = (p) => (
+    <div key={p.id} style={styles.staffBlock}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <h3 style={styles.staffName}>{p.full_name || '(no name)'}{p.id === user.id && <span style={{ fontSize: 12, color: '#C8A24B', marginLeft: 8 }}>· you</span>}</h3>
+          <p style={{ ...styles.staffMeta, marginBottom: 0 }}>{p.phone || 'No phone'}</p>
+        </div>
+        <div className="form-group" style={{ margin: 0, minWidth: 160 }}>
+          <select
+            className="form-select"
+            value={p.role || 'client'}
+            disabled={p.id === user.id}
+            title={p.id === user.id ? "You can't change your own role" : 'Change role'}
+            onChange={e => changeRole(p.id, e.target.value)}
+          >
+            <option value="client">Client</option>
+            <option value="staff">Staff</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
 
   // Same search box drives both views; guests match on name, email, or phone.
   const filteredGuests = clientSearch.trim()
@@ -750,7 +857,7 @@ export default function Admin() {
                 onClick={() => setClientView('accounts')}
                 style={clientView === 'accounts' ? styles.addBtn : styles.importBtn}
               >
-                Accounts ({clients.length})
+                Accounts ({clientsTotal})
               </button>
               <button
                 onClick={() => setClientView('guests')}
@@ -815,9 +922,19 @@ export default function Admin() {
               </div>
             )}
 
+            {clientView === 'accounts' && !clientSearch.trim() && clientsTotal > clients.length && (
+              <p style={{ fontSize: 13, color: '#C8A24B', marginBottom: 16 }}>
+                Showing {clients.length} of {clientsTotal} clients, alphabetically. Use the search box to find anyone else — it searches every client, not just this page.
+              </p>
+            )}
+
             {clientView === 'accounts' && (filteredClients.length === 0 ? (
               <p style={{ fontSize: 14, color: '#9A938A' }}>
-                {clients.length === 0 ? 'No clients yet. Add one to get started.' : 'No clients match that search.'}
+                {clientsLoading
+                  ? 'Searching…'
+                  : clientSearch.trim()
+                    ? 'No clients match that search.'
+                    : 'No clients yet. Add one to get started.'}
               </p>
             ) : (
               <div className="admin-table-scroll" style={styles.table}>
@@ -850,34 +967,38 @@ export default function Admin() {
         {tab === 'team' && (
           <div>
             <p style={{ fontSize: 14, color: '#9A938A', marginBottom: 20, lineHeight: 1.6, maxWidth: 640 }}>
-              Set each person's role. Promote a stylist to <strong>Staff</strong> so they become bookable and can have availability and services.
-              <strong>Admins</strong> can manage everything and are also bookable. As an admin, you already appear in the Availability and Staff &amp; Services tabs.
+              Your staff and admins. <strong>Staff</strong> are bookable and can have availability and services.
+              {' '}<strong>Admins</strong> can manage everything and are also bookable. As an admin, you already appear in the Availability and Staff &amp; Services tabs.
+              {' '}Clients are managed in the <strong>Clients</strong> tab — to make one of them staff, use the search below.
             </p>
-            {[...staff, ...clients]
+            {[...staff]
               .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''))
-              .map(p => (
-                <div key={p.id} style={styles.staffBlock}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-                    <div>
-                      <h3 style={styles.staffName}>{p.full_name || '(no name)'}{p.id === user.id && <span style={{ fontSize: 12, color: '#C8A24B', marginLeft: 8 }}>· you</span>}</h3>
-                      <p style={{ ...styles.staffMeta, marginBottom: 0 }}>{p.phone || 'No phone'}</p>
-                    </div>
-                    <div className="form-group" style={{ margin: 0, minWidth: 160 }}>
-                      <select
-                        className="form-select"
-                        value={p.role || 'client'}
-                        disabled={p.id === user.id}
-                        title={p.id === user.id ? "You can't change your own role" : 'Change role'}
-                        onChange={e => changeRole(p.id, e.target.value)}
-                      >
-                        <option value="client">Client</option>
-                        <option value="staff">Staff</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              .map(p => renderRoleRow(p))}
+
+            {staff.length === 0 && (
+              <p style={{ fontSize: 14, color: '#9A938A' }}>No staff or admins yet.</p>
+            )}
+
+            {/* Clients live in their own tab. Reach them here only by name, so a
+                full client book doesn't bury the actual team. */}
+            <div style={{ marginTop: 36, borderTop: '1px solid #2A2A2A', paddingTop: 24 }}>
+              <h3 style={{ fontFamily: "'Cormorant', serif", fontSize: 20, color: '#D8BC7E', margin: '0 0 6px' }}>Promote a Client</h3>
+              <p style={{ color: '#9A938A', fontSize: 13.5, margin: '0 0 16px', lineHeight: 1.5, maxWidth: 640 }}>
+                Search for a client by name or phone to make them Staff or an Admin. They'll move up into the list above once their role changes.
+              </p>
+              <input
+                className="form-input"
+                style={{ maxWidth: 280, marginBottom: 16 }}
+                placeholder="Search clients by name or phone…"
+                value={promoteSearch}
+                onChange={e => setPromoteSearch(e.target.value)}
+              />
+              {promoteLoading && <p style={{ fontSize: 14, color: '#9A938A' }}>Searching…</p>}
+              {!promoteLoading && promoteSearched && promoteResults.length === 0 && (
+                <p style={{ fontSize: 14, color: '#9A938A' }}>No clients match that search.</p>
+              )}
+              {!promoteLoading && promoteResults.map(p => renderRoleRow(p))}
+            </div>
           </div>
         )}
 
